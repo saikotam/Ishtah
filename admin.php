@@ -29,6 +29,16 @@ $pages = [
         ['Ultrasound Billing (example)', 'ultrasound_billing.php?visit_id=1'],
         ['Doctor Incentives', 'doctor_incentives.php'],
     ],
+    'Accounting & Finance' => [
+        ['Accounting Dashboard', 'accounting_dashboard.php'],
+        ['Profit & Loss Statement', 'profit_loss_statement.php'],
+        ['Balance Sheet', 'balance_sheet.php'],
+        ['Trial Balance', 'trial_balance.php'],
+        ['Cash Flow Statement', 'cash_flow_statement.php'],
+        ['Bank Statement Upload', 'bank_statement_upload.php'],
+        ['Chart of Accounts', 'chart_of_accounts.php'],
+        ['Journal Entries', 'journal_entries.php'],
+    ],
     'Reports & System' => [
         ['Summary Report', 'summary.php'],
         ['System Log', 'system_log.php'],
