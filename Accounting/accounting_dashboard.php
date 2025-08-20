@@ -5,6 +5,45 @@ require_once 'accounting.php';
 
 $accounting = new AccountingSystem($pdo);
 
+// Check if user was redirected from successful initialization
+$initialization_success = isset($_GET['initialized']) && $_GET['initialized'] == '1';
+
+// Check if system is properly initialized, redirect to setup if not
+function isAccountingSystemInitialized($pdo) {
+    try {
+        $required_tables = ['chart_of_accounts', 'journal_entries', 'journal_entry_lines', 'account_balances', 'financial_periods'];
+        
+        foreach ($required_tables as $table) {
+            $stmt = $pdo->query("SHOW TABLES LIKE '$table'");
+            if ($stmt->rowCount() === 0) {
+                return false;
+            }
+        }
+        
+        $stmt = $pdo->query("SELECT COUNT(*) as count FROM chart_of_accounts");
+        $account_count = $stmt->fetch()['count'];
+        if ($account_count < 20) {
+            return false;
+        }
+        
+        $stmt = $pdo->query("SELECT COUNT(*) as count FROM financial_periods");
+        $period_count = $stmt->fetch()['count'];
+        if ($period_count === 0) {
+            return false;
+        }
+        
+        return true;
+        
+    } catch (Exception $e) {
+        return false;
+    }
+}
+
+if (!isAccountingSystemInitialized($pdo)) {
+    header('Location: setup_accounting.php');
+    exit();
+}
+
 // Get current financial year
 $current_fy = getFinancialYear();
 $fy_dates = getFinancialYearDates();
@@ -178,6 +217,14 @@ for ($i = 5; $i >= 0; $i--) {
         <!-- Dashboard Header -->
         <div class="row mb-4">
             <div class="col-md-12">
+                <?php if ($initialization_success): ?>
+                <div class="alert alert-success alert-dismissible fade show">
+                    <i class="fas fa-check-circle"></i> <strong>Welcome to the Accounting System!</strong> 
+                    The system has been successfully initialized and is ready to use.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                <?php endif; ?>
+                
                 <h2><i class="fas fa-chart-bar text-primary"></i> Accounting Dashboard</h2>
                 <p class="text-muted">Financial Year: <?= $current_fy ?> | Last Updated: <?= date('d M Y H:i:s') ?></p>
             </div>
