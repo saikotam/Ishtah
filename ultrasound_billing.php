@@ -208,6 +208,17 @@ if (isset($_POST['final_submit'])) {
                 }
             }
             
+            // Create accounting journal entry
+            try {
+                require_once __DIR__ . '/Accounting/accounting.php';
+                $accounting = new AccountingSystem($pdo);
+                // Default payment mode to cash for ultrasound billing (already marked paid)
+                $payment_mode = 'cash';
+                $accounting->recordUltrasoundRevenue($bill_id, $discounted_total, $payment_mode);
+            } catch (Exception $e) {
+                error_log('Accounting entry failed for ultrasound bill ' . $bill_id . ': ' . $e->getMessage());
+            }
+            
             // Log to system log
             log_action('Reception', 'Ultrasound Bill Generated', 'Invoice: ' . $invoice_number . ', Patient: ' . $visit['full_name'] . ', Amount: ' . $discounted_total . ($referring_doctor_id ? ', Referred by: ' . $referring_doctor_id : ''));
             

@@ -11,6 +11,7 @@ $format = isset($_GET['format']) ? $_GET['format'] : 'html';
 
 // Generate Balance Sheet
 function generateBalanceSheet($accounting, $as_of_date) {
+	global $pdo;
     // Get Assets, Liabilities, and Equity accounts
     $assets = $accounting->getAccountsByType('ASSET', $as_of_date);
     $liabilities = $accounting->getAccountsByType('LIABILITY', $as_of_date);

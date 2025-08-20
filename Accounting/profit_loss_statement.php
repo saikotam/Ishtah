@@ -19,7 +19,8 @@ if (!isset($_GET['start_date']) || !isset($_GET['end_date'])) {
 
 // Generate P&L Statement
 function generateProfitLossStatement($accounting, $start_date, $end_date) {
-    $stmt = $accounting->pdo->prepare("
+    global $pdo;
+    $stmt = $pdo->prepare("
         SELECT 
             c.id,
             c.account_code,

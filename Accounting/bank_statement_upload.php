@@ -202,14 +202,16 @@ function parseGenericTransaction($data) {
 
 // Create journal entry for bank transaction
 function createBankTransaction($transaction, $bank_account_id, $accounting) {
+    global $pdo;
     // Determine the contra account based on transaction description
     $contra_account_id = determineContraAccount($transaction['description']);
     
     if (!$contra_account_id) {
         // Default to miscellaneous income/expense
+        global $pdo;
         $contra_account_id = $transaction['amount'] > 0 ? 
-            getAccountIdByCode('4100', $accounting->pdo) : // Other Income
-            getAccountIdByCode('6000', $accounting->pdo);   // Professional Fees
+            getAccountIdByCode('4100', $pdo) : // Other Income
+            getAccountIdByCode('6000', $pdo);   // Professional Fees
     }
     
     $lines = [];

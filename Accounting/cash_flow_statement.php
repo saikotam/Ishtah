@@ -19,6 +19,7 @@ if (!isset($_GET['start_date']) || !isset($_GET['end_date'])) {
 
 // Generate Cash Flow Statement
 function generateCashFlowStatement($accounting, $start_date, $end_date) {
+    global $pdo;
     // Get cash accounts
     $cash_accounts = ['1000', '1010']; // Cash in Hand, Cash at Bank
     
@@ -26,17 +27,7 @@ function generateCashFlowStatement($accounting, $start_date, $end_date) {
     $operating_activities = [];
     
     // Net Income
-    $stmt = $accounting->pdo->prepare("
-        SELECT 
-            COALESCE(SUM(CASE WHEN c.account_type = 'REVENUE' THEN jel.credit_amount - jel.debit_amount ELSE 0 END), 0) as total_revenue,
-            COALESCE(SUM(CASE WHEN c.account_type = 'EXPENSE' THEN jel.debit_amount - jel.credit_amount ELSE 0 END), 0) as total_expenses
-        FROM journal_entries je
-        JOIN journal_entry_lines jel ON je.id = jel.journal_entry_id
-        JOIN chart_of_accounts c ON jel.account_id = c.id
-        WHERE je.entry_date BETWEEN ? AND ?
-        AND je.status = 'POSTED'
-        AND c.account_type IN ('REVENUE', 'EXPENSE')
-    ");
+    $stmt = $pdo->prepare("\n        SELECT \n            COALESCE(SUM(CASE WHEN c.account_type = 'REVENUE' THEN jel.credit_amount - jel.debit_amount ELSE 0 END), 0) as total_revenue,\n            COALESCE(SUM(CASE WHEN c.account_type = 'EXPENSE' THEN jel.debit_amount - jel.credit_amount ELSE 0 END), 0) as total_expenses\n        FROM journal_entries je\n        JOIN journal_entry_lines jel ON je.id = jel.journal_entry_id\n        JOIN chart_of_accounts c ON jel.account_id = c.id\n        WHERE je.entry_date BETWEEN ? AND ?\n        AND je.status = 'POSTED'\n        AND c.account_type IN ('REVENUE', 'EXPENSE')\n    ");
     $stmt->execute([$start_date, $end_date]);
     $income_data = $stmt->fetch();
     $net_income = $income_data['total_revenue'] - $income_data['total_expenses'];
@@ -128,9 +119,8 @@ function generateCashFlowStatement($accounting, $start_date, $end_date) {
 }
 
 function getAccountChange($accounting, $account_code, $start_date, $end_date) {
-    $stmt = $accounting->pdo->prepare("
-        SELECT id FROM chart_of_accounts WHERE account_code = ?
-    ");
+    global $pdo;
+    $stmt = $pdo->prepare("\n        SELECT id FROM chart_of_accounts WHERE account_code = ?\n    ");
     $stmt->execute([$account_code]);
     $account = $stmt->fetch();
     
@@ -143,11 +133,12 @@ function getAccountChange($accounting, $account_code, $start_date, $end_date) {
 }
 
 function getCashBalance($accounting, $as_of_date) {
+    global $pdo;
     $cash_accounts = ['1000', '1010'];
     $total_cash = 0;
     
     foreach ($cash_accounts as $code) {
-        $stmt = $accounting->pdo->prepare("SELECT id FROM chart_of_accounts WHERE account_code = ?");
+        $stmt = $pdo->prepare("SELECT id FROM chart_of_accounts WHERE account_code = ?");
         $stmt->execute([$code]);
         $account = $stmt->fetch();
         

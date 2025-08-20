@@ -308,6 +308,76 @@ class AccountingSystem {
             $lines
         );
     }
+
+    /**
+     * Record laboratory revenue
+     */
+    public function recordLabRevenue($bill_id, $amount, $payment_mode, $date = null) {
+        $date = $date ?? date('Y-m-d');
+        
+        $cash_account_id = ($payment_mode === 'cash') ? 
+            $this->getAccountIdByCode('1000') : 
+            $this->getAccountIdByCode('1010');
+        $revenue_account_id = $this->getAccountIdByCode('4020'); // Laboratory Revenue
+        
+        $lines = [
+            [
+                'account_id' => $cash_account_id,
+                'description' => "Lab bill - Bill ID: $bill_id",
+                'debit_amount' => $amount,
+                'credit_amount' => 0
+            ],
+            [
+                'account_id' => $revenue_account_id,
+                'description' => "Lab bill - Bill ID: $bill_id",
+                'debit_amount' => 0,
+                'credit_amount' => $amount
+            ]
+        ];
+        
+        return $this->createJournalEntry(
+            $date,
+            'LAB',
+            $bill_id,
+            "Lab bill - Bill ID: $bill_id",
+            $lines
+        );
+    }
+
+    /**
+     * Record ultrasound revenue
+     */
+    public function recordUltrasoundRevenue($bill_id, $amount, $payment_mode, $date = null) {
+        $date = $date ?? date('Y-m-d');
+        
+        $cash_account_id = ($payment_mode === 'cash') ? 
+            $this->getAccountIdByCode('1000') : 
+            $this->getAccountIdByCode('1010');
+        $revenue_account_id = $this->getAccountIdByCode('4030'); // Ultrasound Revenue
+        
+        $lines = [
+            [
+                'account_id' => $cash_account_id,
+                'description' => "Ultrasound bill - Bill ID: $bill_id",
+                'debit_amount' => $amount,
+                'credit_amount' => 0
+            ],
+            [
+                'account_id' => $revenue_account_id,
+                'description' => "Ultrasound bill - Bill ID: $bill_id",
+                'debit_amount' => 0,
+                'credit_amount' => $amount
+            ]
+        ];
+        
+        return $this->createJournalEntry(
+            $date,
+            'ULTRASOUND',
+            $bill_id,
+            "Ultrasound bill - Bill ID: $bill_id",
+            $lines
+        );
+    }
     
     /**
      * Get account ID by account code

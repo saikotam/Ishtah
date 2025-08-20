@@ -187,6 +187,17 @@ if (isset($_POST['final_submit'])) {
                 $stmt = $pdo->prepare("INSERT INTO lab_bill_items (bill_id, test_id, amount) VALUES (?, ?, ?)");
                 $stmt->execute([$bill_id, $item['test_id'], $item['price']]);
             }
+            // Create accounting journal entry
+            try {
+                require_once __DIR__ . '/Accounting/accounting.php';
+                $accounting = new AccountingSystem($pdo);
+                // Default payment mode to cash for lab billing (already marked paid)
+                $payment_mode = 'cash';
+                $accounting->recordLabRevenue($bill_id, $discounted_total, $payment_mode);
+            } catch (Exception $e) {
+                error_log('Accounting entry failed for lab bill ' . $bill_id . ': ' . $e->getMessage());
+            }
+            
             // Log to system log
             log_action('Reception', 'Lab Bill Generated', 'Invoice: ' . $invoice_number . ', Patient: ' . $visit['full_name'] . ', Amount: ' . $discounted_total);
             $success = true;
