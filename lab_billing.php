@@ -780,7 +780,8 @@ if (isset($_GET['invoice_number'])) {
             <?php endif; ?>
         </div>
         
-        <?php if (!empty($bill_list)): ?>
+        <!-- Bill List -->
+        <h5 class="no-print">Bill List</h5>
         <!-- Bill Items -->
         <form method="post" class="no-print mb-4">
             <div class="table-responsive mb-3">
@@ -795,6 +796,11 @@ if (isset($_GET['invoice_number'])) {
                         </tr>
                     </thead>
                     <tbody>
+                        <?php if (empty($bill_list)): ?>
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">No tests added yet. Use the search above to add tests to the bill.</td>
+                        </tr>
+                        <?php else: ?>
                         <?php
                         $live_subtotal = 0;
                         $live_total_item_discount = 0;
@@ -857,6 +863,7 @@ if (isset($_GET['invoice_number'])) {
                             </td>
                         </tr>
                         <?php endforeach; ?>
+                        <?php endif; ?>
                     </tbody>
                 </table>
             </div>
@@ -903,7 +910,6 @@ if (isset($_GET['invoice_number'])) {
                 </table>
             </div>
         </form>
-        <?php endif; ?>
         
         <!-- Generate Bill Button -->
         <form method="post" class="mt-4 no-print">
