@@ -51,8 +51,20 @@ function isAccountingSystemInitialized($pdo) {
 }
 
 if (!isAccountingSystemInitialized($pdo)) {
-    header('Location: setup_accounting.php');
-    exit();
+    // Try to auto-initialize first
+    try {
+        require_once 'sync_accounting.php';
+        ensureAccountingTablesExist($pdo);
+        
+        // Check again after auto-initialization
+        if (!isAccountingSystemInitialized($pdo)) {
+            header('Location: setup_accounting.php?auto_init=1');
+            exit();
+        }
+    } catch (Exception $e) {
+        header('Location: setup_accounting.php?error=' . urlencode($e->getMessage()));
+        exit();
+    }
 }
 
 // Get current financial year

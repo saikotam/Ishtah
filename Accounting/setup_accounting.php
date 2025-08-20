@@ -94,8 +94,27 @@ function initializeAccountingSystem($pdo) {
     ];
 }
 
+// Check for auto-initialization request
+$auto_init = isset($_GET['auto_init']) && $_GET['auto_init'] == '1';
+$setup_error = isset($_GET['error']) ? $_GET['error'] : '';
+
 // Check current initialization status
 $is_initialized = isAccountingSystemInitialized($pdo);
+
+// Auto-initialize if requested and not already initialized
+if ($auto_init && !$is_initialized) {
+    try {
+        $result = initializeAccountingSystem($pdo);
+        $message = "System auto-initialized successfully! Executed {$result['executed']} statements.";
+        $is_initialized = true;
+        
+        // Redirect back to dashboard
+        header('Location: accounting_dashboard.php?initialized=1');
+        exit();
+    } catch (Exception $e) {
+        $error = 'Auto-initialization failed: ' . $e->getMessage();
+    }
+}
 
 // Handle POST request for initialization
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -159,6 +178,13 @@ if ($is_initialized && $_SERVER['REQUEST_METHOD'] !== 'POST') {
                         <?php if ($error): ?>
                         <div class="alert alert-danger alert-dismissible fade show">
                             <i class="fas fa-exclamation-triangle"></i> <?= htmlspecialchars($error) ?>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                        <?php endif; ?>
+
+                        <?php if ($setup_error): ?>
+                        <div class="alert alert-warning alert-dismissible fade show">
+                            <i class="fas fa-info-circle"></i> <strong>Setup Error:</strong> <?= htmlspecialchars($setup_error) ?>
                             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                         <?php endif; ?>
