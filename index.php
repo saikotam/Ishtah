@@ -271,6 +271,9 @@ unset($v);
         <li class="nav-item">
           <a class="nav-link" href="ultrasound_rates_display.php">Ultrasound Rates</a>
         </li>
+        <li class="nav-item">
+          <a class="nav-link" href="accounting_reports.php">Accounting Reports</a>
+        </li>
         <!-- <li class="nav-item">
           <a class="nav-link" href="admin.php">Admin</a>
         </li> -->
