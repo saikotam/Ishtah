@@ -18,7 +18,7 @@ function generateBalanceSheet($accounting, $as_of_date) {
     
     // Calculate net income for the current year and add to equity
     $fy_dates = getFinancialYearDates();
-    $stmt = $accounting->pdo->prepare("
+    $stmt = $pdo->prepare("
         SELECT 
             COALESCE(SUM(CASE WHEN c.account_type = 'REVENUE' THEN jel.credit_amount - jel.debit_amount ELSE 0 END), 0) as total_revenue,
             COALESCE(SUM(CASE WHEN c.account_type = 'EXPENSE' THEN jel.debit_amount - jel.credit_amount ELSE 0 END), 0) as total_expenses
