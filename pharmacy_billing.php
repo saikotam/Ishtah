@@ -216,6 +216,19 @@ if (isset($_POST['final_submit'])) {
                 // Log stock change
                 $pdo->prepare("INSERT INTO pharmacy_stock_log (medicine_id, qty_change, action, reason, user) VALUES (?, ?, 'sale', 'Pharmacy bill', 'Reception')")->execute([$item['medicine_id'], -$item['quantity']]);
             }
+            // Create accounting journal entry
+            try {
+                require_once __DIR__ . '/Accounting/accounting.php';
+                $accounting = new AccountingSystem($pdo);
+                // Try to guess payment mode from request if available, default to cash
+                $payment_mode = isset($_POST['payment_mode']) ? strtolower($_POST['payment_mode']) : 'cash';
+                // Estimate cost of goods sold as 70% of net sale if not tracked precisely
+                $estimated_cogs = round($discounted_total * 0.7, 2);
+                $accounting->recordPharmacySale($bill_id, $discounted_total, $gst_total, $estimated_cogs, $payment_mode);
+            } catch (Exception $e) {
+                error_log('Accounting entry failed for pharmacy bill ' . $bill_id . ': ' . $e->getMessage());
+            }
+            
             // Log to system log
             log_action('Reception', 'Pharmacy Bill Generated', 'Invoice: ' . $invoice_number . ', Patient: ' . $visit['full_name'] . ', Amount: ' . $discounted_total);
             $success = true;

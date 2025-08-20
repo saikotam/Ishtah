@@ -1,6 +1,7 @@
 <?php
 // includes/patient.php - Shared patient and visit management logic
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/../Accounting/accounting.php';
 
 // Register a new patient
 function register_patient($pdo, $data) {
@@ -114,7 +115,22 @@ function get_visit_invoices($pdo, $visit_id) {
 function create_consultation_invoice($pdo, $patient_id, $amount, $mode) {
     $stmt = $pdo->prepare("INSERT INTO consultation_invoices (patient_id, amount, mode, paid) VALUES (?, ?, ?, 1)");
     $stmt->execute([$patient_id, $amount, $mode]);
-    return $pdo->lastInsertId();
+    $invoice_id = $pdo->lastInsertId();
+    
+    // Create accounting entry for consultation revenue
+    try {
+        $accounting = new AccountingSystem($pdo);
+        // Attempt to get doctor_id from latest visit (if available) for the patient, else null
+        $doctor_id = null;
+        $stmtDoc = $pdo->prepare("SELECT doctor_id FROM visits WHERE patient_id = ? ORDER BY id DESC LIMIT 1");
+        $stmtDoc->execute([$patient_id]);
+        $doctor_id = $stmtDoc->fetchColumn();
+        $accounting->recordConsultationRevenue($patient_id, $doctor_id ?: 0, $amount, strtolower($mode));
+    } catch (Exception $e) {
+        error_log('Accounting entry failed for consultation invoice ' . $invoice_id . ': ' . $e->getMessage());
+    }
+    
+    return $invoice_id;
 }
 
 // Update consultation invoice with visit_id after visit is registered
