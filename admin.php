@@ -42,6 +42,8 @@ $pages = [
     'Reports & System' => [
         ['Summary Report', 'summary.php'],
         ['System Log', 'system_log.php'],
+        ['Accounting Reports', 'AccountingGPT/accounting_reports.php'],
+        ['Bank Statement Upload', 'AccountingGPT/bank_statement_upload.php'],
     ],
 ];
 ?>
