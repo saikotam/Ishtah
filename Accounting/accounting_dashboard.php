@@ -2,8 +2,19 @@
 // accounting_dashboard.php - Main Accounting Dashboard
 require_once '../includes/db.php';
 require_once 'accounting.php';
+require_once 'sync_accounting.php';
 
 $accounting = new AccountingSystem($pdo);
+// Optional on-demand sync from operational data
+$sync_message = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'sync_operational') {
+    try {
+        $result = syncAccountingFromOperationalData($pdo);
+        $sync_message = "Synced: Pharmacy {$result['pharmacy']}, Lab {$result['lab']}, Ultrasound {$result['ultrasound']}.";
+    } catch (Exception $e) {
+        $sync_message = 'Sync failed: ' . htmlspecialchars($e->getMessage());
+    }
+}
 
 // Check if user was redirected from successful initialization
 $initialization_success = isset($_GET['initialized']) && $_GET['initialized'] == '1';
@@ -224,6 +235,12 @@ for ($i = 5; $i >= 0; $i--) {
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
                 <?php endif; ?>
+                <?php if (!empty($sync_message)): ?>
+                <div class="alert alert-info alert-dismissible fade show">
+                    <i class="fas fa-sync-alt"></i> <?= $sync_message ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                <?php endif; ?>
                 
                 <h2><i class="fas fa-chart-bar text-primary"></i> Accounting Dashboard</h2>
                 <p class="text-muted">Financial Year: <?= $current_fy ?> | Last Updated: <?= date('d M Y H:i:s') ?></p>
@@ -282,6 +299,15 @@ for ($i = 5; $i >= 0; $i--) {
                         <h5 class="mb-0"><i class="fas fa-file-alt"></i> Financial Reports</h5>
                     </div>
                     <div class="card-body">
+                        <div class="mb-3">
+                            <form method="POST" class="d-inline">
+                                <input type="hidden" name="action" value="sync_operational">
+                                <button type="submit" class="btn btn-outline-secondary">
+                                    <i class="fas fa-sync-alt"></i> Sync from operational data
+                                </button>
+                            </form>
+                            <small class="text-muted ms-2">Use this if recent bills are not yet reflected in reports.</small>
+                        </div>
                         <div class="row">
                             <div class="col-md-3 mb-3">
                                 <a href="profit_loss_statement.php" class="report-link">
