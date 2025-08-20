@@ -368,6 +368,20 @@ for ($i = 5; $i >= 0; $i--) {
                                 <i class="fas fa-list"></i> View Trial Balance
                             </button>
                             <hr>
+                            <small class="text-muted"><strong>GST Input Credit System</strong></small>
+                            <button class="btn btn-outline-primary btn-sm mt-1" onclick="window.location.href='purchase_invoice_entry.php'">
+                                <i class="fas fa-file-invoice"></i> Purchase Invoice Entry
+                            </button>
+                            <button class="btn btn-outline-success btn-sm" onclick="window.location.href='enhanced_pharmacy_stock_entry.php'">
+                                <i class="fas fa-pills"></i> Enhanced Stock Entry
+                            </button>
+                            <button class="btn btn-outline-info btn-sm" onclick="window.location.href='gst_input_credit_reports.php'">
+                                <i class="fas fa-chart-line"></i> GST Reports
+                            </button>
+                            <button class="btn btn-outline-dark btn-sm" onclick="window.location.href='setup_gst_system.php'">
+                                <i class="fas fa-cogs"></i> GST System Setup
+                            </button>
+                            <hr>
                             <button class="btn btn-outline-secondary" onclick="window.location.href='chart_of_accounts.php'">
                                 <i class="fas fa-cog"></i> Manage Accounts
                             </button>
