@@ -1,6 +1,6 @@
 <?php
 // bank_statement_upload.php - Upload and process bank statements (CSV/XLSX)
-require_once 'includes/db.php';
+require_once '../includes/db.php';
 
 $message = '';
 $error = '';
@@ -174,7 +174,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['statement_file'])) {
 <div class="container py-4">
     <div class="d-flex align-items-center justify-content-between mb-3">
         <h3 class="mb-0">Bank Statement Upload</h3>
-        <a href="admin.php" class="btn btn-outline-secondary">Back to Admin</a>
+        <a href="../admin.php" class="btn btn-outline-secondary">Back to Admin</a>
     </div>
     <?php if ($message): ?>
         <div class="alert alert-success"><?= htmlspecialchars($message) ?></div>

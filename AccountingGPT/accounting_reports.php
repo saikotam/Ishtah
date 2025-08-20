@@ -1,6 +1,6 @@
 <?php
 // accounting_reports.php - Financial reports (P&L, Inventory, GST, Snapshot)
-require_once 'includes/db.php';
+require_once '../includes/db.php';
 
 function get_date_range($type, $date, $custom_start = null, $custom_end = null) {
 	$start = $end = '';
@@ -86,7 +86,7 @@ function fmt_money($amount) {
     <div class="container py-4">
         <div class="d-flex align-items-center justify-content-between mb-3">
             <h2 class="mb-0">Accounting Reports</h2>
-            <a href="index.php" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back to Home</a>
+            <a href="../index.php" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back to Home</a>
         </div>
 
         <form method="get" class="row gy-2 gx-2 align-items-end mb-4">
