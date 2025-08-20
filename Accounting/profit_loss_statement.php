@@ -1,7 +1,7 @@
 <?php
 // profit_loss_statement.php - Profit & Loss Statement Generator
-require_once 'includes/db.php';
-require_once 'includes/accounting.php';
+require_once '../includes/db.php';
+require_once 'accounting.php';
 
 $accounting = new AccountingSystem($pdo);
 

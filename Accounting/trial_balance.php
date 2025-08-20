@@ -1,7 +1,7 @@
 <?php
 // trial_balance.php - Trial Balance Report Generator
-require_once 'includes/db.php';
-require_once 'includes/accounting.php';
+require_once '../includes/db.php';
+require_once 'accounting.php';
 
 $accounting = new AccountingSystem($pdo);
 

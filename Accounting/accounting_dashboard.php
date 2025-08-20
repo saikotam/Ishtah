@@ -1,7 +1,7 @@
 <?php
 // accounting_dashboard.php - Main Accounting Dashboard
-require_once 'includes/db.php';
-require_once 'includes/accounting.php';
+require_once '../includes/db.php';
+require_once 'accounting.php';
 
 $accounting = new AccountingSystem($pdo);
 
@@ -147,7 +147,7 @@ for ($i = 5; $i >= 0; $i--) {
         <!-- Navigation -->
         <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
             <div class="container-fluid">
-                <a class="navbar-brand" href="index.php">
+                <a class="navbar-brand" href="../index.php">
                     <i class="fas fa-stethoscope"></i> Clinic Management
                 </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -155,10 +155,10 @@ for ($i = 5; $i >= 0; $i--) {
                 </button>
                 <div class="collapse navbar-collapse" id="navbarNav">
                     <div class="navbar-nav ms-auto">
-                        <a class="nav-link" href="index.php">
+                        <a class="nav-link" href="../index.php">
                             <i class="fas fa-home"></i> Home
                         </a>
-                        <a class="nav-link" href="summary.php">
+                        <a class="nav-link" href="../summary.php">
                             <i class="fas fa-chart-line"></i> Daily Summary
                         </a>
                         <div class="nav-item dropdown">

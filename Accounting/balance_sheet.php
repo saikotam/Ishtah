@@ -1,7 +1,7 @@
 <?php
 // balance_sheet.php - Balance Sheet Generator
-require_once 'includes/db.php';
-require_once 'includes/accounting.php';
+require_once '../includes/db.php';
+require_once 'accounting.php';
 
 $accounting = new AccountingSystem($pdo);
 
