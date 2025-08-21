@@ -8,11 +8,132 @@ $accounting = new AccountingSystem($pdo);
 $success = false;
 $error = '';
 $message = '';
+$form_data = [];
+$validation_errors = [];
+
+// Preserve form data function
+function preserveFormValue($field, $default = '') {
+    global $form_data;
+    return isset($form_data[$field]) ? htmlspecialchars($form_data[$field]) : $default;
+}
+
+// Validation functions
+function validateRequired($value, $field_name) {
+    if (empty(trim($value))) {
+        return "$field_name is required";
+    }
+    return null;
+}
+
+function validateNumeric($value, $field_name, $min = null, $max = null) {
+    if (!is_numeric($value)) {
+        return "$field_name must be a valid number";
+    }
+    if ($min !== null && $value < $min) {
+        return "$field_name must be at least $min";
+    }
+    if ($max !== null && $value > $max) {
+        return "$field_name must not exceed $max";
+    }
+    return null;
+}
+
+function validateDate($value, $field_name) {
+    if (!empty($value) && !DateTime::createFromFormat('Y-m-d', $value)) {
+        return "$field_name must be a valid date";
+    }
+    return null;
+}
+
+function validateGSTIN($value) {
+    if (!empty($value) && !preg_match('/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/', $value)) {
+        return "GSTIN must be in valid format (e.g., 22AAAAA0000A1Z5)";
+    }
+    return null;
+}
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    try {
-        $pdo->beginTransaction();
+    // Store form data for preservation
+    $form_data = $_POST;
+    
+    // Server-side validation
+    if (isset($_POST['action']) && $_POST['action'] === 'add_stock_with_invoice') {
+        // Validate invoice fields
+        if ($error = validateRequired($_POST['invoice_number'] ?? '', 'Invoice Number')) {
+            $validation_errors['invoice_number'] = $error;
+        }
+        if ($error = validateRequired($_POST['invoice_date'] ?? '', 'Invoice Date')) {
+            $validation_errors['invoice_date'] = $error;
+        }
+        if ($error = validateDate($_POST['invoice_date'] ?? '', 'Invoice Date')) {
+            $validation_errors['invoice_date'] = $error;
+        }
+        if ($error = validateRequired($_POST['supplier_name'] ?? '', 'Supplier Name')) {
+            $validation_errors['supplier_name'] = $error;
+        }
+        if ($error = validateGSTIN($_POST['supplier_gstin'] ?? '')) {
+            $validation_errors['supplier_gstin'] = $error;
+        }
+        
+        // Validate medicines
+        $medicines = json_decode($_POST['medicines'] ?? '[]', true);
+        if (empty($medicines)) {
+            $validation_errors['medicines'] = 'At least one medicine is required';
+        } else {
+            foreach ($medicines as $index => $medicine) {
+                if ($error = validateRequired($medicine['medicine_name'] ?? '', "Medicine Name for item " . ($index + 1))) {
+                    $validation_errors["medicine_name_$index"] = $error;
+                }
+                if ($error = validateNumeric($medicine['quantity'] ?? '', "Quantity for item " . ($index + 1), 0.001)) {
+                    $validation_errors["quantity_$index"] = $error;
+                }
+                if ($error = validateNumeric($medicine['purchase_price'] ?? '', "Purchase Price for item " . ($index + 1), 0)) {
+                    $validation_errors["purchase_price_$index"] = $error;
+                }
+            }
+        }
+        
+        // Validate discount percentages
+        if (!empty($_POST['discount_percent'])) {
+            if ($error = validateNumeric($_POST['discount_percent'], 'Discount Percent', 0, 100)) {
+                $validation_errors['discount_percent'] = $error;
+            }
+        }
+        if (!empty($_POST['spot_discount_percent'])) {
+            if ($error = validateNumeric($_POST['spot_discount_percent'], 'Spot Discount Percent', 0, 100)) {
+                $validation_errors['spot_discount_percent'] = $error;
+            }
+        }
+    } else if (isset($_POST['action']) && $_POST['action'] === 'simple_stock') {
+        // Validate simple stock entry
+        if ($error = validateRequired($_POST['medicine_name'] ?? '', 'Medicine Name')) {
+            $validation_errors['medicine_name'] = $error;
+        }
+        if ($error = validateNumeric($_POST['quantity'] ?? '', 'Quantity', 0.001)) {
+            $validation_errors['quantity'] = $error;
+        }
+        if (!empty($_POST['purchase_price'])) {
+            if ($error = validateNumeric($_POST['purchase_price'], 'Purchase Price', 0)) {
+                $validation_errors['purchase_price'] = $error;
+            }
+        }
+        if (!empty($_POST['sale_price'])) {
+            if ($error = validateNumeric($_POST['sale_price'], 'Sale Price', 0)) {
+                $validation_errors['sale_price'] = $error;
+            }
+        }
+        if (!empty($_POST['expiry_date'])) {
+            if ($error = validateDate($_POST['expiry_date'], 'Expiry Date')) {
+                $validation_errors['expiry_date'] = $error;
+            }
+        }
+    }
+    
+    // Only proceed if no validation errors
+    if (empty($validation_errors)) {
+        try {
+            $pdo->beginTransaction();
         
         if (isset($_POST['action']) && $_POST['action'] === 'add_stock_with_invoice') {
             // First create/update purchase invoice
@@ -258,9 +379,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->commit();
         }
         
-    } catch (Exception $e) {
-        $pdo->rollBack();
-        $error = 'Error saving stock: ' . $e->getMessage();
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            $error = 'Database Error: ' . $e->getMessage();
+            // Form data is preserved in $form_data for redisplay
+        }
+    } else {
+        $error = 'Please correct the validation errors below.';
     }
 }
 
@@ -331,6 +456,35 @@ try {
             padding: 10px 15px;
             margin: 10px 0;
         }
+        .validation-error {
+            color: #dc3545;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+        .is-invalid {
+            border-color: #dc3545;
+        }
+        .is-valid {
+            border-color: #28a745;
+        }
+        .form-requirements {
+            background: #e7f3ff;
+            border: 1px solid #b3d7ff;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .requirement-item {
+            margin-bottom: 5px;
+        }
+        .requirement-item i {
+            margin-right: 8px;
+        }
+        .field-help {
+            font-size: 0.875rem;
+            color: #6c757d;
+            margin-top: 0.25rem;
+        }
     </style>
 </head>
 <body>
@@ -368,6 +522,18 @@ try {
         </div>
         <?php endif; ?>
 
+        <?php if (!empty($validation_errors)): ?>
+        <div class="alert alert-warning alert-dismissible fade show">
+            <h6><i class="fas fa-exclamation-circle"></i> Please correct the following errors:</h6>
+            <ul class="mb-0">
+                <?php foreach ($validation_errors as $field => $error_msg): ?>
+                <li><?= htmlspecialchars($error_msg) ?></li>
+                <?php endforeach; ?>
+            </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <?php endif; ?>
+
         <!-- Entry Mode Selection -->
         <div class="entry-mode-toggle">
             <div class="row">
@@ -395,7 +561,31 @@ try {
         <!-- Simple Entry Form -->
         <div id="simpleEntryForm" class="form-section">
             <h5><i class="fas fa-plus-circle"></i> Simple Stock Entry</h5>
-            <form method="POST">
+            
+            <!-- Form Requirements -->
+            <div class="form-requirements">
+                <h6><i class="fas fa-info-circle"></i> Required Fields</h6>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="requirement-item">
+                            <i class="fas fa-check-circle text-success"></i> Medicine Name
+                        </div>
+                        <div class="requirement-item">
+                            <i class="fas fa-check-circle text-success"></i> Quantity (minimum 0.001)
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="requirement-item">
+                            <i class="fas fa-info-circle text-info"></i> Unit Type (defaults to Strip)
+                        </div>
+                        <div class="requirement-item">
+                            <i class="fas fa-info-circle text-info"></i> GST % (defaults to 12%)
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <form method="POST" id="simpleStockForm">
                 <div class="row">
                     <div class="col-md-6">
                         <div class="mb-3">
