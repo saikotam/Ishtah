@@ -44,8 +44,10 @@ try {
     $stmt->execute([$visit_id]);
     $lab_invoice_exists = $stmt->fetchColumn() > 0;
     
-    // Check if lab invoice has been printed (we'll assume it's printed if it exists)
-    $lab_invoice_printed = $lab_invoice_exists;
+    // Check if lab invoice has been printed (check for print confirmation)
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM lab_bills WHERE visit_id = ? AND invoice_number IS NOT NULL AND printed = 1");
+    $stmt->execute([$visit_id]);
+    $lab_invoice_printed = $stmt->fetchColumn() > 0;
     
     // Check if TRF form has been uploaded
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM visit_documents WHERE visit_id = ? AND original_name LIKE '%TRF%'");
@@ -57,16 +59,20 @@ try {
     $stmt->execute([$visit_id]);
     $pharmacy_invoice_exists = $stmt->fetchColumn() > 0;
     
-    // Check if pharmacy invoice has been printed (we'll assume it's printed if it exists)
-    $pharmacy_invoice_printed = $pharmacy_invoice_exists;
+    // Check if pharmacy invoice has been printed (check for print confirmation)
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM pharmacy_bills WHERE visit_id = ? AND invoice_number IS NOT NULL AND printed = 1");
+    $stmt->execute([$visit_id]);
+    $pharmacy_invoice_printed = $stmt->fetchColumn() > 0;
     
     // Check if ultrasound bill exists
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM ultrasound_bills WHERE visit_id = ? AND invoice_number IS NOT NULL");
     $stmt->execute([$visit_id]);
     $ultrasound_invoice_exists = $stmt->fetchColumn() > 0;
     
-    // Check if ultrasound invoice has been printed (we'll assume it's printed if it exists)
-    $ultrasound_invoice_printed = $ultrasound_invoice_exists;
+    // Check if ultrasound invoice has been printed (check for print confirmation)
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM ultrasound_bills WHERE visit_id = ? AND invoice_number IS NOT NULL AND printed = 1");
+    $stmt->execute([$visit_id]);
+    $ultrasound_invoice_printed = $stmt->fetchColumn() > 0;
     
     // Check if Form F is needed
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM ultrasound_bill_items ubi JOIN ultrasound_bills ub ON ub.id = ubi.bill_id JOIN ultrasound_scans us ON us.id = ubi.scan_id WHERE ub.visit_id = ? AND us.is_form_f_needed = 1");
@@ -119,24 +125,29 @@ try {
         $pending_actions[] = ['action' => 'upload_trf', 'text' => 'Upload TRF Form', 'icon' => '📋', 'url' => '#', 'priority' => 3];
     }
     
-    // Check for pharmacy invoice printing
+    // Check for pharmacy invoice printing (if pharmacy bill exists but not printed)
     if ($pharmacy_invoice_exists && !$pharmacy_invoice_printed) {
         $pending_actions[] = ['action' => 'print_pharmacy_invoice', 'text' => 'Print Medicines Bill', 'icon' => '💊', 'url' => 'pharmacy_billing.php?visit_id=' . $visit_id . '&print=1', 'priority' => 4];
     }
     
-    // Check for Form F printing
+    // Check for Form F printing (if Form F is needed but not printed)
     if ($form_f_needed && !$form_f_printed) {
         $pending_actions[] = ['action' => 'print_form_f', 'text' => 'Print Form F', 'icon' => '📋', 'url' => 'Form F.pdf', 'priority' => 5];
     }
     
-    // Check for Form F scanning
+    // Check for Form F scanning (if Form F is needed but not scanned)
     if ($form_f_needed && !$form_f_scanned) {
         $pending_actions[] = ['action' => 'scan_form_f', 'text' => 'Upload Form F', 'icon' => '📄', 'url' => '#', 'priority' => 6];
     }
     
-    // Check for ultrasound invoice printing
+    // Check for ultrasound invoice printing (if ultrasound bill exists but not printed)
     if ($ultrasound_invoice_exists && !$ultrasound_invoice_printed) {
         $pending_actions[] = ['action' => 'print_ultrasound_invoice', 'text' => 'Print Scan Bill', 'icon' => '🔬', 'url' => 'ultrasound_billing.php?visit_id=' . $visit_id . '&print=1', 'priority' => 7];
+    }
+    
+    // Check for lab invoice printing (if lab bill exists but not printed)
+    if ($lab_invoice_exists && !$lab_invoice_printed) {
+        $pending_actions[] = ['action' => 'print_lab_invoice', 'text' => 'Print Lab Bill', 'icon' => '🧪', 'url' => 'lab_billing.php?visit_id=' . $visit_id . '&print=1', 'priority' => 8];
     }
     
     // If there are pending actions, get the highest priority one
@@ -184,7 +195,8 @@ try {
         'debug' => [
             'form_f_details' => $form_f_details,
             'workflow_step' => 'Current step: ' . $next_action,
-            'total_pending_actions' => count($pending_actions)
+            'total_pending_actions' => count($pending_actions),
+            'pending_actions_details' => $pending_actions
         ]
     ]);
     

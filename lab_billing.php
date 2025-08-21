@@ -704,7 +704,7 @@ if (isset($_GET['invoice_number'])) {
     
     <!-- Controls -->
     <div class="controls no-print">
-        <button onclick="window.print()" class="btn btn-primary">Print Bill</button>
+        <button onclick="markAsPrintedAndPrint()" class="btn btn-primary">Print Bill</button>
         <form method="post" class="d-inline">
             <button type="submit" name="new_bill" class="btn btn-warning">New Bill</button>
         </form>
@@ -1018,5 +1018,32 @@ function performSearch(query) {
 document.addEventListener('DOMContentLoaded', function() {
     toggleDiscountValue();
 });
+
+// Function to mark invoice as printed and then print
+function markAsPrintedAndPrint() {
+    const invoiceNumber = '<?= isset($bill['invoice_number']) ? $bill['invoice_number'] : '' ?>';
+    if (invoiceNumber) {
+        // Mark as printed via AJAX
+        fetch('mark_invoice_printed.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'invoice_number=' + encodeURIComponent(invoiceNumber) + '&type=lab'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log('Invoice marked as printed');
+            }
+        })
+        .catch(error => {
+            console.error('Error marking invoice as printed:', error);
+        });
+    }
+    
+    // Print the bill
+    window.print();
+}
 </script>
 </html> 

@@ -1166,20 +1166,18 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Refresh a specific action button
     function refreshActionButton(visitId) {
-        console.log('refreshActionButton called for visit', visitId);
         const button = document.querySelector(`.next-action-btn[data-visit-id="${visitId}"]`);
         if (button) {
-            console.log('Found button for visit', visitId);
             const iconSpan = button.querySelector('.action-icon');
             const textSpan = button.querySelector('.action-text');
             iconSpan.textContent = '⏳';
             textSpan.textContent = 'Loading...';
             button.classList.remove('completed');
+        }
             
             fetch('get_next_action.php?visit_id=' + visitId)
                 .then(response => response.json())
                 .then(data => {
-                    console.log('Refreshed action data for visit', visitId, ':', data);
                     if (data.success) {
                         iconSpan.textContent = data.action_icon;
                         
