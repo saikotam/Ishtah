@@ -350,6 +350,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $success = true;
             $message = 'Stock added successfully with purchase invoice integration! Invoice ID: ' . $invoice_id;
             
+            // Clear form data on successful submission
+            $form_data = [];
+            
             // Log the action
             log_action('Pharmacy', 'Enhanced Stock Entry', 'Invoice: ' . $invoice_data['invoice_number'] . ', Items: ' . count($medicines));
             
@@ -371,6 +374,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ])) {
                 $success = true;
                 $message = 'Stock entry saved successfully!';
+                
+                // Clear form data on successful submission
+                $form_data = [];
+                
                 log_action('Reception', 'Simple Stock Entry', 'Medicine: ' . $_POST['medicine_name'] . ', Qty: ' . $_POST['quantity'] . ' ' . $_POST['unit_type']);
             } else {
                 $error = 'Failed to save stock. Please try again.';
@@ -589,29 +596,38 @@ try {
             </div>
             
             <form method="POST" id="simpleStockForm">
+                <input type="hidden" name="action" value="simple_stock">
                 <div class="row">
                     <div class="col-md-6">
                         <div class="mb-3">
                             <label class="form-label">Medicine Name *</label>
-                            <input type="text" class="form-control" name="medicine_name" required>
+                            <input type="text" class="form-control <?= isset($validation_errors['medicine_name']) ? 'is-invalid' : '' ?>" 
+                                   name="medicine_name" value="<?= preserveFormValue('medicine_name') ?>" required>
+                            <?php if (isset($validation_errors['medicine_name'])): ?>
+                                <div class="validation-error"><?= htmlspecialchars($validation_errors['medicine_name']) ?></div>
+                            <?php endif; ?>
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="mb-3">
                             <label class="form-label">Quantity *</label>
-                            <input type="number" class="form-control" name="quantity" step="0.001" min="0" required>
+                            <input type="number" class="form-control <?= isset($validation_errors['quantity']) ? 'is-invalid' : '' ?>" 
+                                   name="quantity" value="<?= preserveFormValue('quantity') ?>" step="0.001" min="0" required>
+                            <?php if (isset($validation_errors['quantity'])): ?>
+                                <div class="validation-error"><?= htmlspecialchars($validation_errors['quantity']) ?></div>
+                            <?php endif; ?>
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="mb-3">
                             <label class="form-label">Unit Type *</label>
                             <select class="form-select" name="unit_type" required>
-                                <option value="Strip">Strip</option>
-                                <option value="Bottle">Bottle</option>
-                                <option value="Vial">Vial</option>
-                                <option value="Tube">Tube</option>
-                                <option value="Box">Box</option>
-                                <option value="Packet">Packet</option>
+                                <option value="Strip" <?= preserveFormValue('unit_type', 'Strip') === 'Strip' ? 'selected' : '' ?>>Strip</option>
+                                <option value="Bottle" <?= preserveFormValue('unit_type') === 'Bottle' ? 'selected' : '' ?>>Bottle</option>
+                                <option value="Vial" <?= preserveFormValue('unit_type') === 'Vial' ? 'selected' : '' ?>>Vial</option>
+                                <option value="Tube" <?= preserveFormValue('unit_type') === 'Tube' ? 'selected' : '' ?>>Tube</option>
+                                <option value="Box" <?= preserveFormValue('unit_type') === 'Box' ? 'selected' : '' ?>>Box</option>
+                                <option value="Packet" <?= preserveFormValue('unit_type') === 'Packet' ? 'selected' : '' ?>>Packet</option>
                             </select>
                         </div>
                     </div>
@@ -621,31 +637,39 @@ try {
                     <div class="col-md-3">
                         <div class="mb-3">
                             <label class="form-label">Purchase Price</label>
-                            <input type="number" class="form-control" name="purchase_price" step="0.01" min="0">
+                            <input type="number" class="form-control <?= isset($validation_errors['purchase_price']) ? 'is-invalid' : '' ?>" 
+                                   name="purchase_price" value="<?= preserveFormValue('purchase_price') ?>" step="0.01" min="0">
+                            <?php if (isset($validation_errors['purchase_price'])): ?>
+                                <div class="validation-error"><?= htmlspecialchars($validation_errors['purchase_price']) ?></div>
+                            <?php endif; ?>
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="mb-3">
                             <label class="form-label">Sale Price</label>
-                            <input type="number" class="form-control" name="sale_price" step="0.01" min="0">
+                            <input type="number" class="form-control <?= isset($validation_errors['sale_price']) ? 'is-invalid' : '' ?>" 
+                                   name="sale_price" value="<?= preserveFormValue('sale_price') ?>" step="0.01" min="0">
+                            <?php if (isset($validation_errors['sale_price'])): ?>
+                                <div class="validation-error"><?= htmlspecialchars($validation_errors['sale_price']) ?></div>
+                            <?php endif; ?>
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="mb-3">
                             <label class="form-label">GST %</label>
                             <select class="form-select" name="gst_percent">
-                                <option value="0">0%</option>
-                                <option value="5">5%</option>
-                                <option value="12" selected>12%</option>
-                                <option value="18">18%</option>
-                                <option value="28">28%</option>
+                                <option value="0" <?= preserveFormValue('gst_percent') === '0' ? 'selected' : '' ?>>0%</option>
+                                <option value="5" <?= preserveFormValue('gst_percent') === '5' ? 'selected' : '' ?>>5%</option>
+                                <option value="12" <?= preserveFormValue('gst_percent', '12') === '12' ? 'selected' : '' ?>>12%</option>
+                                <option value="18" <?= preserveFormValue('gst_percent') === '18' ? 'selected' : '' ?>>18%</option>
+                                <option value="28" <?= preserveFormValue('gst_percent') === '28' ? 'selected' : '' ?>>28%</option>
                             </select>
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="mb-3">
                             <label class="form-label">HSN Code</label>
-                            <input type="text" class="form-control" name="hsn_code">
+                            <input type="text" class="form-control" name="hsn_code" value="<?= preserveFormValue('hsn_code') ?>">
                         </div>
                     </div>
                 </div>
@@ -654,26 +678,30 @@ try {
                     <div class="col-md-4">
                         <div class="mb-3">
                             <label class="form-label">Batch No</label>
-                            <input type="text" class="form-control" name="batch_no">
+                            <input type="text" class="form-control" name="batch_no" value="<?= preserveFormValue('batch_no') ?>">
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="mb-3">
                             <label class="form-label">Expiry Date</label>
-                            <input type="date" class="form-control" name="expiry_date">
+                            <input type="date" class="form-control <?= isset($validation_errors['expiry_date']) ? 'is-invalid' : '' ?>" 
+                                   name="expiry_date" value="<?= preserveFormValue('expiry_date') ?>">
+                            <?php if (isset($validation_errors['expiry_date'])): ?>
+                                <div class="validation-error"><?= htmlspecialchars($validation_errors['expiry_date']) ?></div>
+                            <?php endif; ?>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="mb-3">
                             <label class="form-label">Box Number</label>
-                            <input type="text" class="form-control" name="box_number">
+                            <input type="text" class="form-control" name="box_number" value="<?= preserveFormValue('box_number') ?>">
                         </div>
                     </div>
                 </div>
                 
                 <div class="mb-3">
                     <label class="form-label">Supplier Name</label>
-                    <input type="text" class="form-control" name="supplier_name">
+                    <input type="text" class="form-control" name="supplier_name" value="<?= preserveFormValue('supplier_name') ?>">
                 </div>
                 
                 <button type="submit" class="btn btn-primary">
@@ -694,13 +722,21 @@ try {
                     <div class="col-md-6">
                         <div class="mb-3">
                             <label class="form-label">Invoice Number *</label>
-                            <input type="text" class="form-control" name="invoice_number" required>
+                            <input type="text" class="form-control <?= isset($validation_errors['invoice_number']) ? 'is-invalid' : '' ?>" 
+                                   name="invoice_number" value="<?= preserveFormValue('invoice_number') ?>" required>
+                            <?php if (isset($validation_errors['invoice_number'])): ?>
+                                <div class="validation-error"><?= htmlspecialchars($validation_errors['invoice_number']) ?></div>
+                            <?php endif; ?>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="mb-3">
                             <label class="form-label">Invoice Date *</label>
-                            <input type="date" class="form-control" name="invoice_date" value="<?= date('Y-m-d') ?>" required>
+                            <input type="date" class="form-control <?= isset($validation_errors['invoice_date']) ? 'is-invalid' : '' ?>" 
+                                   name="invoice_date" value="<?= preserveFormValue('invoice_date', date('Y-m-d')) ?>" required>
+                            <?php if (isset($validation_errors['invoice_date'])): ?>
+                                <div class="validation-error"><?= htmlspecialchars($validation_errors['invoice_date']) ?></div>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -710,7 +746,8 @@ try {
                     <div class="col-md-6">
                         <div class="mb-3">
                             <label class="form-label">Supplier Name *</label>
-                            <input type="text" class="form-control" name="supplier_name" list="supplierList" required>
+                            <input type="text" class="form-control <?= isset($validation_errors['supplier_name']) ? 'is-invalid' : '' ?>" 
+                                   name="supplier_name" value="<?= preserveFormValue('supplier_name') ?>" list="supplierList" required>
                             <datalist id="supplierList">
                                 <?php foreach ($recent_suppliers as $supplier): ?>
                                 <option value="<?= htmlspecialchars($supplier['supplier_name']) ?>" 
@@ -719,12 +756,19 @@ try {
                                         data-state="<?= htmlspecialchars($supplier['supplier_state']) ?>">
                                 <?php endforeach; ?>
                             </datalist>
+                            <?php if (isset($validation_errors['supplier_name'])): ?>
+                                <div class="validation-error"><?= htmlspecialchars($validation_errors['supplier_name']) ?></div>
+                            <?php endif; ?>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="mb-3">
                             <label class="form-label">Supplier GSTIN</label>
-                            <input type="text" class="form-control" name="supplier_gstin">
+                            <input type="text" class="form-control <?= isset($validation_errors['supplier_gstin']) ? 'is-invalid' : '' ?>" 
+                                   name="supplier_gstin" value="<?= preserveFormValue('supplier_gstin') ?>">
+                            <?php if (isset($validation_errors['supplier_gstin'])): ?>
+                                <div class="validation-error"><?= htmlspecialchars($validation_errors['supplier_gstin']) ?></div>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -733,13 +777,13 @@ try {
                     <div class="col-md-8">
                         <div class="mb-3">
                             <label class="form-label">Supplier Address</label>
-                            <input type="text" class="form-control" name="supplier_address">
+                            <input type="text" class="form-control" name="supplier_address" value="<?= preserveFormValue('supplier_address') ?>">
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="mb-3">
                             <label class="form-label">Supplier State</label>
-                            <input type="text" class="form-control" name="supplier_state" value="Maharashtra">
+                            <input type="text" class="form-control" name="supplier_state" value="<?= preserveFormValue('supplier_state', 'Maharashtra') ?>">
                         </div>
                     </div>
                 </div>
@@ -747,7 +791,8 @@ try {
                 <!-- GST Eligibility -->
                 <div class="gst-section mb-3">
                     <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="gstEligible" name="is_gst_eligible" checked>
+                        <input class="form-check-input" type="checkbox" id="gstEligible" name="is_gst_eligible" 
+                               <?= preserveFormValue('is_gst_eligible') ? 'checked' : (empty($form_data) ? 'checked' : '') ?>>
                         <label class="form-check-label" for="gstEligible">
                             <strong>GST Input Credit Eligible</strong>
                         </label>
@@ -762,6 +807,11 @@ try {
                             <i class="fas fa-plus"></i> Add Medicine
                         </button>
                     </div>
+                    <?php if (isset($validation_errors['medicines'])): ?>
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle"></i> <?= htmlspecialchars($validation_errors['medicines']) ?>
+                        </div>
+                    <?php endif; ?>
                     <div id="medicinesContainer">
                         <!-- Medicines will be added here -->
                     </div>
@@ -772,13 +822,23 @@ try {
                     <div class="col-md-6">
                         <div class="mb-3">
                             <label class="form-label">Discount (%)</label>
-                            <input type="number" class="form-control" name="discount_percent" step="0.01" min="0" max="100" value="0" onchange="calculateSummary()">
+                            <input type="number" class="form-control <?= isset($validation_errors['discount_percent']) ? 'is-invalid' : '' ?>" 
+                                   name="discount_percent" value="<?= preserveFormValue('discount_percent', '0') ?>" 
+                                   step="0.01" min="0" max="100" onchange="calculateSummary()">
+                            <?php if (isset($validation_errors['discount_percent'])): ?>
+                                <div class="validation-error"><?= htmlspecialchars($validation_errors['discount_percent']) ?></div>
+                            <?php endif; ?>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="mb-3">
                             <label class="form-label">Spot Payment Discount (%)</label>
-                            <input type="number" class="form-control" name="spot_discount_percent" step="0.01" min="0" max="100" value="0" onchange="calculateSummary()">
+                            <input type="number" class="form-control <?= isset($validation_errors['spot_discount_percent']) ? 'is-invalid' : '' ?>" 
+                                   name="spot_discount_percent" value="<?= preserveFormValue('spot_discount_percent', '0') ?>" 
+                                   step="0.01" min="0" max="100" onchange="calculateSummary()">
+                            <?php if (isset($validation_errors['spot_discount_percent'])): ?>
+                                <div class="validation-error"><?= htmlspecialchars($validation_errors['spot_discount_percent']) ?></div>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -789,18 +849,18 @@ try {
                         <div class="mb-3">
                             <label class="form-label">Payment Method</label>
                             <select class="form-select" name="payment_method">
-                                <option value="CASH">Cash</option>
-                                <option value="BANK_TRANSFER">Bank Transfer</option>
-                                <option value="CHEQUE">Cheque</option>
-                                <option value="UPI">UPI</option>
-                                <option value="CREDIT">Credit</option>
+                                <option value="CASH" <?= preserveFormValue('payment_method', 'CASH') === 'CASH' ? 'selected' : '' ?>>Cash</option>
+                                <option value="BANK_TRANSFER" <?= preserveFormValue('payment_method') === 'BANK_TRANSFER' ? 'selected' : '' ?>>Bank Transfer</option>
+                                <option value="CHEQUE" <?= preserveFormValue('payment_method') === 'CHEQUE' ? 'selected' : '' ?>>Cheque</option>
+                                <option value="UPI" <?= preserveFormValue('payment_method') === 'UPI' ? 'selected' : '' ?>>UPI</option>
+                                <option value="CREDIT" <?= preserveFormValue('payment_method') === 'CREDIT' ? 'selected' : '' ?>>Credit</option>
                             </select>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="mb-3">
                             <label class="form-label">Notes</label>
-                            <input type="text" class="form-control" name="notes">
+                            <input type="text" class="form-control" name="notes" value="<?= preserveFormValue('notes') ?>">
                         </div>
                     </div>
                 </div>
@@ -886,6 +946,21 @@ try {
                 }
             });
         });
+
+        // Set the correct mode based on form data
+        <?php if (!empty($form_data)): ?>
+        document.addEventListener('DOMContentLoaded', function() {
+            <?php if (isset($form_data['action']) && $form_data['action'] === 'add_stock_with_invoice'): ?>
+            document.getElementById('invoiceMode').checked = true;
+            document.getElementById('simpleEntryForm').style.display = 'none';
+            document.getElementById('invoiceEntryForm').style.display = 'block';
+            <?php else: ?>
+            document.getElementById('simpleMode').checked = true;
+            document.getElementById('simpleEntryForm').style.display = 'block';
+            document.getElementById('invoiceEntryForm').style.display = 'none';
+            <?php endif; ?>
+        });
+        <?php endif; ?>
 
         function addMedicine() {
             medicineCounter++;
@@ -1066,10 +1141,54 @@ try {
             });
         });
 
+        // Restore medicines data if form was submitted with errors
+        <?php if (!empty($form_data) && isset($form_data['medicines'])): ?>
+        document.addEventListener('DOMContentLoaded', function() {
+            const medicinesData = <?= $form_data['medicines'] ?>;
+            const medicines = JSON.parse(medicinesData);
+            
+            medicines.forEach((medicine, index) => {
+                addMedicine();
+                const medicineRow = document.getElementById(`medicine-${medicineCounter}`);
+                
+                // Populate fields
+                Object.keys(medicine).forEach(field => {
+                    const input = medicineRow.querySelector(`[data-field="${field}"]`);
+                    if (input) {
+                        input.value = medicine[field] || '';
+                    }
+                });
+            });
+            
+            // Calculate summary after restoring data
+            setTimeout(calculateSummary, 100);
+            
+            // Highlight validation errors for medicines
+            <?php foreach ($validation_errors as $field => $error): ?>
+                <?php if (preg_match('/^(medicine_name|quantity|purchase_price)_(\d+)$/', $field, $matches)): ?>
+                    const errorField = '<?= $matches[1] ?>';
+                    const errorIndex = <?= $matches[2] ?>;
+                    const medicineRow = document.getElementById(`medicine-${errorIndex + 1}`);
+                    if (medicineRow) {
+                        const input = medicineRow.querySelector(`[data-field="${errorField}"]`);
+                        if (input) {
+                            input.classList.add('is-invalid');
+                            // Add error message
+                            const errorDiv = document.createElement('div');
+                            errorDiv.className = 'validation-error';
+                            errorDiv.textContent = '<?= htmlspecialchars($error) ?>';
+                            input.parentNode.appendChild(errorDiv);
+                        }
+                    }
+                <?php endif; ?>
+            <?php endforeach; ?>
+        });
+        <?php else: ?>
         // Add first medicine on load
         document.addEventListener('DOMContentLoaded', function() {
             addMedicine();
         });
+        <?php endif; ?>
     </script>
 </body>
 </html>
