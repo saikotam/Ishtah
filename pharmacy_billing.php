@@ -236,7 +236,7 @@ if (isset($_POST['final_submit'])) {
             $_SESSION['pharmacy_bill_list'] = [];
             unset($_SESSION['pharmacy_discount_type'], $_SESSION['pharmacy_discount_value'], $_SESSION['pharmacy_item_discounts']);
             // Redirect to printable bill
-            header('Location: pharmacy_billing.php?visit_id=' . $visit_id . '&invoice_number=' . urlencode($invoice_number) . '&print=1');
+            header('Location: pharmacy_billing.php?visit_id=' . $visit_id . '&invoice_number=' . urlencode($invoice_number) . '&print=1&bill_created=true');
             exit;
         } else {
             $error = 'Failed to generate bill.';
@@ -786,7 +786,7 @@ if (isset($_GET['invoice_number'])) {
         <form method="post" class="d-inline">
             <button type="submit" name="new_bill" class="btn btn-warning">New Bill</button>
         </form>
-        <a href="index.php" class="btn btn-secondary">Back to Home</a>
+        <a href="index.php<?= isset($_GET['bill_created']) && $_GET['bill_created'] === 'true' ? '?bill_created=true&visit_id=' . $visit_id : '' ?>" class="btn btn-secondary">Back to Home</a>
     </div>
     
     <?php else: ?>

@@ -244,7 +244,7 @@ if (isset($_POST['final_submit'])) {
             $_SESSION['form_f_scan_names'] = $form_f_scan_names;
             
             // Redirect to printable bill
-            header('Location: ultrasound_billing.php?visit_id=' . $visit_id . '&invoice_number=' . urlencode($invoice_number) . '&print=1');
+            header('Location: ultrasound_billing.php?visit_id=' . $visit_id . '&invoice_number=' . urlencode($invoice_number) . '&print=1&bill_created=true');
             exit;
         } else {
             $error = 'Failed to generate bill.';
@@ -655,7 +655,11 @@ if ($print_mode && $invoice_number) {
         <form method="post" class="d-inline">
             <button type="submit" name="new_bill" class="btn btn-warning">New Bill</button>
         </form>
-        <a href="ultrasound_billing.php?visit_id=<?= $visit_id ?>" class="btn btn-secondary">Back to Billing</a>
+        <?php if (isset($_GET['bill_created']) && $_GET['bill_created'] === 'true'): ?>
+            <a href="index.php?bill_created=true&visit_id=<?= $visit_id ?>" class="btn btn-secondary">Back to Home</a>
+        <?php else: ?>
+            <a href="ultrasound_billing.php?visit_id=<?= $visit_id ?>" class="btn btn-secondary">Back to Billing</a>
+        <?php endif; ?>
     </div>
     
     <script>

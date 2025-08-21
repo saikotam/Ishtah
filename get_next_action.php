@@ -101,41 +101,55 @@ try {
     $action_text = null;
     $action_icon = null;
     
+    // Check if there are any pending actions that need to be completed
+    $pending_actions = [];
+    
+    // Check for consultation
     if (!$consultation_done) {
-        $next_action = 'consultation';
-        $action_text = 'Send to Consultation';
-        $action_icon = '👨‍⚕️';
-        $action_url = '#';
-    } elseif (!$prescription_scanned) {
-        $next_action = 'scan_prescription';
-        $action_text = 'Scan Prescription';
-        $action_icon = '📄';
-        $action_url = '#';
-    } elseif ($lab_invoice_exists && !$trf_uploaded) {
-        $next_action = 'upload_trf';
-        $action_text = 'Upload TRF Form';
-        $action_icon = '📋';
-        $action_url = '#';
-    } elseif ($pharmacy_invoice_exists && !$pharmacy_invoice_printed) {
-        $next_action = 'print_pharmacy_invoice';
-        $action_text = 'Print Medicines Bill';
-        $action_icon = '💊';
-        $action_url = 'pharmacy_billing.php?visit_id=' . $visit_id . '&print=1';
-    } elseif ($form_f_needed && !$form_f_printed) {
-        $next_action = 'print_form_f';
-        $action_text = 'Print Form F';
-        $action_icon = '📋';
-        $action_url = 'Form F.pdf';
-    } elseif ($form_f_needed && !$form_f_scanned) {
-        $next_action = 'scan_form_f';
-        $action_text = 'Upload Form F';
-        $action_icon = '📄';
-        $action_url = '#';
-    } elseif ($ultrasound_invoice_exists && !$ultrasound_invoice_printed) {
-        $next_action = 'print_ultrasound_invoice';
-        $action_text = 'Print Scan Bill';
-        $action_icon = '🔬';
-        $action_url = 'ultrasound_billing.php?visit_id=' . $visit_id . '&print=1';
+        $pending_actions[] = ['action' => 'consultation', 'text' => 'Send to Consultation', 'icon' => '👨‍⚕️', 'url' => '#', 'priority' => 1];
+    }
+    
+    // Check for prescription scanning
+    if (!$prescription_scanned) {
+        $pending_actions[] = ['action' => 'scan_prescription', 'text' => 'Scan Prescription', 'icon' => '📄', 'url' => '#', 'priority' => 2];
+    }
+    
+    // Check for TRF upload (if lab invoice exists)
+    if ($lab_invoice_exists && !$trf_uploaded) {
+        $pending_actions[] = ['action' => 'upload_trf', 'text' => 'Upload TRF Form', 'icon' => '📋', 'url' => '#', 'priority' => 3];
+    }
+    
+    // Check for pharmacy invoice printing
+    if ($pharmacy_invoice_exists && !$pharmacy_invoice_printed) {
+        $pending_actions[] = ['action' => 'print_pharmacy_invoice', 'text' => 'Print Medicines Bill', 'icon' => '💊', 'url' => 'pharmacy_billing.php?visit_id=' . $visit_id . '&print=1', 'priority' => 4];
+    }
+    
+    // Check for Form F printing
+    if ($form_f_needed && !$form_f_printed) {
+        $pending_actions[] = ['action' => 'print_form_f', 'text' => 'Print Form F', 'icon' => '📋', 'url' => 'Form F.pdf', 'priority' => 5];
+    }
+    
+    // Check for Form F scanning
+    if ($form_f_needed && !$form_f_scanned) {
+        $pending_actions[] = ['action' => 'scan_form_f', 'text' => 'Upload Form F', 'icon' => '📄', 'url' => '#', 'priority' => 6];
+    }
+    
+    // Check for ultrasound invoice printing
+    if ($ultrasound_invoice_exists && !$ultrasound_invoice_printed) {
+        $pending_actions[] = ['action' => 'print_ultrasound_invoice', 'text' => 'Print Scan Bill', 'icon' => '🔬', 'url' => 'ultrasound_billing.php?visit_id=' . $visit_id . '&print=1', 'priority' => 7];
+    }
+    
+    // If there are pending actions, get the highest priority one
+    if (!empty($pending_actions)) {
+        // Sort by priority
+        usort($pending_actions, function($a, $b) {
+            return $a['priority'] - $b['priority'];
+        });
+        
+        $next_action = $pending_actions[0]['action'];
+        $action_text = $pending_actions[0]['text'];
+        $action_icon = $pending_actions[0]['icon'];
+        $action_url = $pending_actions[0]['url'];
     } else {
         $next_action = 'completed';
         $action_text = 'Completed';
@@ -151,6 +165,8 @@ try {
         'action_url' => $action_url,
         'visit_id' => $visit_id,
         'patient_name' => $visit['full_name'],
+        'pending_actions_count' => count($pending_actions),
+        'all_pending_actions' => $pending_actions,
         'status' => [
             'consultation_done' => $consultation_done,
             'prescription_scanned' => $prescription_scanned,
@@ -167,7 +183,8 @@ try {
         ],
         'debug' => [
             'form_f_details' => $form_f_details,
-            'workflow_step' => 'Current step: ' . $next_action
+            'workflow_step' => 'Current step: ' . $next_action,
+            'total_pending_actions' => count($pending_actions)
         ]
     ]);
     

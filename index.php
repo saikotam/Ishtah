@@ -784,6 +784,7 @@ unset($v);
                                 <span class="action-icon">⏳</span>
                                 <span class="action-text">Loading...</span>
                             </button>
+                            <div class="pending-actions-tooltip" data-visit-id="<?= $v['visit_id'] ?>" style="display: none; position: absolute; background: #333; color: white; padding: 8px; border-radius: 4px; font-size: 12px; z-index: 1000; max-width: 300px;"></div>
                             <div class="form-check form-f-checkbox" data-visit-id="<?= $v['visit_id'] ?>" style="display: none;">
                                 <input class="form-check-input" type="checkbox" onchange="handleFormFCheckbox(<?= $v['visit_id'] ?>, this)">
                                 <label class="form-check-label small">Form F Printed</label>
@@ -954,6 +955,27 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load next actions for all visits
     loadNextActions();
     
+    // Check if we're returning from a billing page with a new bill
+    const urlParams = new URLSearchParams(window.location.search);
+    const billCreated = urlParams.get('bill_created');
+    const visitId = urlParams.get('visit_id');
+    
+    if (billCreated === 'true' && visitId) {
+        // Show success message
+        showActionSuccess('Bill created successfully! Next actions updated.');
+        
+        // Refresh the specific action button for this visit
+        setTimeout(() => {
+            refreshActionButton(visitId);
+        }, 500);
+        
+        // Clean up URL parameters
+        const newUrl = new URL(window.location);
+        newUrl.searchParams.delete('bill_created');
+        newUrl.searchParams.delete('visit_id');
+        window.history.replaceState({}, '', newUrl);
+    }
+    
     // Add click handlers for visit rows
     document.addEventListener('click', function(e) {
         if (e.target.closest('.clickable-row')) {
@@ -1042,7 +1064,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         console.log('Action data for visit', visitId, ':', data);
                         if (data.success) {
                             iconSpan.textContent = data.action_icon;
-                            textSpan.textContent = data.action_text;
+                            
+                            // Show action text with pending count if there are multiple actions
+                            if (data.pending_actions_count > 1) {
+                                textSpan.textContent = data.action_text + ` (${data.pending_actions_count} pending)`;
+                            } else {
+                                textSpan.textContent = data.action_text;
+                            }
                             
                             // Set button URL and click handler
                             if (data.action_url && data.action_url !== '#') {
@@ -1078,6 +1106,28 @@ document.addEventListener('DOMContentLoaded', function() {
                                 } else {
                                     formFCheckbox.style.display = 'none';
                                 }
+                            }
+                            
+                            // Update tooltip with all pending actions if there are multiple
+                            const tooltip = document.querySelector(`.pending-actions-tooltip[data-visit-id="${visitId}"]`);
+                            if (tooltip && data.all_pending_actions && data.all_pending_actions.length > 1) {
+                                let tooltipText = '<strong>All Pending Actions:</strong><br>';
+                                data.all_pending_actions.forEach((action, index) => {
+                                    tooltipText += `${index + 1}. ${action.text}<br>`;
+                                });
+                                tooltip.innerHTML = tooltipText;
+                                
+                                // Add hover events to show/hide tooltip
+                                button.addEventListener('mouseenter', function(e) {
+                                    const rect = button.getBoundingClientRect();
+                                    tooltip.style.left = rect.left + 'px';
+                                    tooltip.style.top = (rect.bottom + 5) + 'px';
+                                    tooltip.style.display = 'block';
+                                });
+                                
+                                button.addEventListener('mouseleave', function(e) {
+                                    tooltip.style.display = 'none';
+                                });
                             }
                         } else {
                             console.error('Error loading next action:', data.message);
@@ -1132,7 +1182,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.log('Refreshed action data for visit', visitId, ':', data);
                     if (data.success) {
                         iconSpan.textContent = data.action_icon;
-                        textSpan.textContent = data.action_text;
+                        
+                        // Show action text with pending count if there are multiple actions
+                        if (data.pending_actions_count > 1) {
+                            textSpan.textContent = data.action_text + ` (${data.pending_actions_count} pending)`;
+                        } else {
+                            textSpan.textContent = data.action_text;
+                        }
                         
                         // Set button URL and click handler
                         if (data.action_url && data.action_url !== '#') {
@@ -1168,6 +1224,28 @@ document.addEventListener('DOMContentLoaded', function() {
                             } else {
                                 formFCheckbox.style.display = 'none';
                             }
+                        }
+                        
+                        // Update tooltip with all pending actions if there are multiple
+                        const tooltip = document.querySelector(`.pending-actions-tooltip[data-visit-id="${visitId}"]`);
+                        if (tooltip && data.all_pending_actions && data.all_pending_actions.length > 1) {
+                            let tooltipText = '<strong>All Pending Actions:</strong><br>';
+                            data.all_pending_actions.forEach((action, index) => {
+                                tooltipText += `${index + 1}. ${action.text}<br>`;
+                            });
+                            tooltip.innerHTML = tooltipText;
+                            
+                            // Add hover events to show/hide tooltip
+                            button.addEventListener('mouseenter', function(e) {
+                                const rect = button.getBoundingClientRect();
+                                tooltip.style.left = rect.left + 'px';
+                                tooltip.style.top = (rect.bottom + 5) + 'px';
+                                tooltip.style.display = 'block';
+                            });
+                            
+                            button.addEventListener('mouseleave', function(e) {
+                                tooltip.style.display = 'none';
+                            });
                         }
                     } else {
                         console.error('Error refreshing next action:', data.message);
