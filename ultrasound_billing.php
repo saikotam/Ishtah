@@ -31,6 +31,8 @@ if (!$visit_id) {
     unset($_SESSION['ultrasound_item_discounts']);
     unset($_SESSION['current_ultrasound_visit_id']);
     unset($_SESSION['ultrasound_referring_doctor_id']);
+    unset($_SESSION['form_f_required']);
+    unset($_SESSION['form_f_scan_names']);
     die('Invalid visit ID.');
 }
 
@@ -225,19 +227,21 @@ if (isset($_POST['final_submit'])) {
             $success = true;
             $auto_print = true;
             $_SESSION['ultrasound_bill_list'] = [];
-            unset($_SESSION['ultrasound_discount_type'], $_SESSION['ultrasound_discount_value'], $_SESSION['ultrasound_item_discounts'], $_SESSION['ultrasound_referring_doctor_id']);
+            unset($_SESSION['ultrasound_discount_type'], $_SESSION['ultrasound_discount_value'], $_SESSION['ultrasound_item_discounts'], $_SESSION['ultrasound_referring_doctor_id'], $_SESSION['form_f_required'], $_SESSION['form_f_scan_names']);
             
             // Check if Form F is needed for any scans
             $has_form_f_scans = false;
+            $form_f_scan_names = [];
             foreach ($bill_list as $item) {
                 if (isset($item['is_form_f_needed']) && $item['is_form_f_needed']) {
                     $has_form_f_scans = true;
-                    break;
+                    $form_f_scan_names[] = $item['scan_name'];
                 }
             }
             
-            // Store Form F flag in session for printing
-            $_SESSION['print_form_f'] = $has_form_f_scans;
+            // Store Form F information in session for display
+            $_SESSION['form_f_required'] = $has_form_f_scans;
+            $_SESSION['form_f_scan_names'] = $form_f_scan_names;
             
             // Redirect to printable bill
             header('Location: ultrasound_billing.php?visit_id=' . $visit_id . '&invoice_number=' . urlencode($invoice_number) . '&print=1');
@@ -258,6 +262,7 @@ if (isset($_POST['new_bill'])) {
     $_SESSION['ultrasound_discount_value'] = '';
     $_SESSION['ultrasound_item_discounts'] = [];
     $_SESSION['ultrasound_referring_doctor_id'] = '';
+    unset($_SESSION['form_f_required'], $_SESSION['form_f_scan_names']);
     // Keep the current visit ID in session
     log_action('Reception', 'Ultrasound Bill Started', 'Started new ultrasound bill for Patient: ' . $visit['full_name'] . ', Visit ID: ' . $visit_id);
     header('Location: ultrasound_billing.php?visit_id=' . $visit_id);
@@ -271,7 +276,7 @@ if (isset($_POST['clear_session'])) {
     $_SESSION['ultrasound_discount_value'] = '';
     $_SESSION['ultrasound_item_discounts'] = [];
     $_SESSION['ultrasound_referring_doctor_id'] = '';
-    unset($_SESSION['current_ultrasound_visit_id']);
+    unset($_SESSION['current_ultrasound_visit_id'], $_SESSION['form_f_required'], $_SESSION['form_f_scan_names']);
     log_action('Reception', 'Ultrasound Session Cleared', 'Manually cleared ultrasound billing session for Visit ID: ' . $visit_id);
     header('Location: ultrasound_billing.php?visit_id=' . $visit_id);
     exit;
@@ -284,7 +289,7 @@ if (isset($_POST['go_back_home'])) {
     $_SESSION['ultrasound_discount_value'] = '';
     $_SESSION['ultrasound_item_discounts'] = [];
     $_SESSION['ultrasound_referring_doctor_id'] = '';
-    unset($_SESSION['current_ultrasound_visit_id']);
+    unset($_SESSION['current_ultrasound_visit_id'], $_SESSION['form_f_required'], $_SESSION['form_f_scan_names']);
     log_action('Reception', 'Ultrasound Session Cleared', 'Cleared ultrasound billing session when going back to home for Visit ID: ' . $visit_id);
     header('Location: index.php');
     exit;
@@ -655,22 +660,8 @@ if ($print_mode && $invoice_number) {
     
     <script>
         window.onload = function() {
-            // Print the bill first
+            // Print the bill
             window.print();
-            
-            // Check if Form F should be printed
-            <?php if (isset($_SESSION['print_form_f']) && $_SESSION['print_form_f']): ?>
-            // Wait a moment then print Form F
-            setTimeout(function() {
-                // Create a new window for Form F - opens the stored PDF
-                var formFWindow = window.open('Form F.pdf', '_blank');
-                if (formFWindow) {
-                    formFWindow.onload = function() {
-                        formFWindow.print();
-                    };
-                }
-            }, 1000);
-            <?php endif; ?>
         };
     </script>
 <?php else: ?>
@@ -844,15 +835,22 @@ if ($print_mode && $invoice_number) {
                         ?>
                         
                         <?php if ($has_form_f_scans): ?>
-                        <div class="alert alert-info mb-3">
+                        <div class="alert alert-warning mb-3">
                             <h6 class="alert-heading">
-                                <i class="fas fa-info-circle"></i> 
-                                Form F Required
+                                <i class="fas fa-exclamation-triangle"></i> 
+                                Form F Collection Required
                             </h6>
                             <p class="mb-0">
-                                Form F will be printed automatically along with the bill.
+                                <strong>Please collect the following documents before proceeding:</strong>
                             </p>
-                            <a href="Form F.pdf" target="_blank" class="btn btn-sm btn-outline-danger mt-2">Print Form F</a>
+                            <ul class="mb-2">
+                                <li>Form F (filled and signed)</li>
+                                <li>Patient's Aadhar Card</li>
+                                <li>Referring Doctor's Slip</li>
+                            </ul>
+                            <p class="mb-0 text-danger">
+                                <strong>Note:</strong> These documents are mandatory for scans marked with Form F requirement.
+                            </p>
                         </div>
                         <?php endif; ?>
                         <div class="table-responsive">
@@ -969,6 +967,17 @@ if ($print_mode && $invoice_number) {
                                 </button>
                             </form>
                         </div>
+                        
+                        <!-- Hidden input to store Form F scan information -->
+                        <input type="hidden" id="formFScans" value="<?php 
+                            $form_f_scan_names = [];
+                            foreach ($bill_list as $item) {
+                                if (isset($item['is_form_f_needed']) && $item['is_form_f_needed']) {
+                                    $form_f_scan_names[] = $item['scan_name'];
+                                }
+                            }
+                            echo htmlspecialchars(json_encode($form_f_scan_names));
+                        ?>">
                     </div>
                 </div>
                 <?php endif; ?>
@@ -1005,22 +1014,6 @@ if ($print_mode && $invoice_number) {
                 </div>
                 <?php endif; ?>
                 
-                <?php
-                // Determine if Form F button should be shown in Quick Actions
-                $should_show_form_f = false;
-                if (!empty($bill_list)) {
-                    foreach ($bill_list as $item) {
-                        if (isset($item['is_form_f_needed']) && $item['is_form_f_needed']) {
-                            $should_show_form_f = true;
-                            break;
-                        }
-                    }
-                }
-                if (!$should_show_form_f && isset($_SESSION['print_form_f']) && $_SESSION['print_form_f']) {
-                    $should_show_form_f = true;
-                }
-                ?>
-
                 <!-- Quick Actions -->
                 <div class="card mb-3">
                     <div class="card-body">
@@ -1034,9 +1027,6 @@ if ($print_mode && $invoice_number) {
                                class="btn btn-outline-primary" target="_blank">
                                 Print Latest Bill
                             </a>
-                            <?php endif; ?>
-                            <?php if ($should_show_form_f): ?>
-                            <a href="Form F.pdf" class="btn btn-outline-danger" target="_blank">Print Form F</a>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -1130,6 +1120,31 @@ function validateBillGeneration() {
         alert('Please select a referring doctor before generating the bill.');
         referringDoctorSelect.focus();
         return false;
+    }
+    
+    // Check if any scans require Form F using the hidden input
+    const formFScansInput = document.getElementById('formFScans');
+    let formFScans = [];
+    if (formFScansInput && formFScansInput.value) {
+        try {
+            formFScans = JSON.parse(formFScansInput.value);
+        } catch (e) {
+            console.error('Error parsing Form F scans:', e);
+        }
+    }
+    
+    if (formFScans.length > 0) {
+        const message = 'The following scans require Form F collection:\n\n' + 
+                       formFScans.join('\n') + 
+                       '\n\nPlease ensure you have collected:\n' +
+                       '• Form F (filled and signed)\n' +
+                       '• Patient\'s Aadhar Card\n' +
+                       '• Referring Doctor\'s Slip\n\n' +
+                       'Click OK to proceed with bill generation.';
+        
+        if (!confirm(message)) {
+            return false;
+        }
     }
     
     return confirm('Generate ultrasound bill?');
