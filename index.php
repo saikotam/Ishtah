@@ -786,7 +786,7 @@ unset($v);
                             </button>
                             <div class="pending-actions-tooltip" data-visit-id="<?= $v['visit_id'] ?>" style="display: none; position: absolute; background: #333; color: white; padding: 8px; border-radius: 4px; font-size: 12px; z-index: 1000; max-width: 300px;"></div>
                             <div class="form-check form-f-checkbox" data-visit-id="<?= $v['visit_id'] ?>" style="display: none;">
-                                <input class="form-check-input" type="checkbox" onchange="handleFormFCheckbox(<?= $v['visit_id'] ?>, this)">
+                                <input class="form-check-input" type="checkbox" onchange="handleFormFCheckbox('<?= $v['visit_id'] ?>', this)">
                                 <label class="form-check-label small">Form F Printed</label>
                             </div>
                         </div>
