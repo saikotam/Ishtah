@@ -496,6 +496,9 @@ try {
                     <p class="mb-0">Integrated with GST Input Credit Management</p>
                 </div>
                 <div class="col-md-4 text-end">
+                    <a href="../index.php" class="btn btn-outline-secondary me-2">
+                        <i class="fas fa-home"></i> Home
+                    </a>
                     <a href="../pharmacy_stock_summary.php" class="btn btn-light me-2">
                         <i class="fas fa-list"></i> Stock Summary
                     </a>

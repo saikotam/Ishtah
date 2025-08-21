@@ -411,7 +411,7 @@ for ($i = 5; $i >= 0; $i--) {
                                 <i class="fas fa-file-invoice"></i> Purchase Invoice Entry
                             </button>
                             <button class="btn btn-outline-success btn-sm" onclick="window.location.href='enhanced_pharmacy_stock_entry.php'">
-                                <i class="fas fa-pills"></i> Enhanced Stock Entry
+                                <i class="fas fa-pills"></i> Stock Entry
                             </button>
                             <button class="btn btn-outline-info btn-sm" onclick="window.location.href='gst_input_credit_reports.php'">
                                 <i class="fas fa-chart-line"></i> GST Reports

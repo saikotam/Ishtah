@@ -17,7 +17,7 @@ $pages = [
         ['Stock Log', 'pharmacy_stock_log.php'],
         ['Pharmacy Stock Analysis', 'pharmacy_stock_analysis.php'],
         ['Stock Summary', 'pharmacy_stock_summary.php'],
-        ['Stock Entry', 'pharmacy_stock_entry.php'],
+        ['Stock Entry', 'Accounting/enhanced_pharmacy_stock_entry.php'],
     ],
     'Lab' => [
         ['Lab Test Rates', 'lab_test_rates.php'],
