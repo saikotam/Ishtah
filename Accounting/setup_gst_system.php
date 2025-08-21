@@ -241,7 +241,7 @@ $all_setup = array_reduce($tables_status, function($carry, $table) {
                                 <i class="fas fa-file-invoice"></i> Create Purchase Invoice
                             </a>
                             <a href="enhanced_pharmacy_stock_entry.php" class="btn btn-success">
-                                <i class="fas fa-pills"></i> Enhanced Stock Entry
+                                <i class="fas fa-pills"></i> Stock Entry
                             </a>
                             <a href="gst_input_credit_reports.php" class="btn btn-info">
                                 <i class="fas fa-chart-line"></i> GST Reports
