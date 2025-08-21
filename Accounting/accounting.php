@@ -3,9 +3,101 @@
 
 class AccountingSystem {
     private $pdo;
+    private $maxRetries = 3;
+    private $retryDelay = 1; // seconds
     
     public function __construct($pdo) {
         $this->pdo = $pdo;
+    }
+    
+    /**
+     * Safe execution with automatic retry and duplicate prevention
+     */
+    private function safeExecute($referenceType, $referenceId, $callable, $maxRetries = null) {
+        $maxRetries = $maxRetries ?? $this->maxRetries;
+        
+        // Check if already synced to prevent duplicates
+        if ($this->isAlreadySynced($referenceType, $referenceId)) {
+            $this->log("Entry already synced: {$referenceType} ID {$referenceId}", 'DEBUG');
+            return $this->getExistingJournalEntryId($referenceType, $referenceId);
+        }
+        
+        $lastException = null;
+        
+        for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
+            try {
+                $result = $callable();
+                $this->log("Successfully synced {$referenceType} ID {$referenceId} on attempt {$attempt}", 'INFO');
+                return $result;
+                
+            } catch (Exception $e) {
+                $lastException = $e;
+                $this->log("Sync attempt {$attempt} failed for {$referenceType} ID {$referenceId}: " . $e->getMessage(), 'WARNING');
+                
+                if ($attempt < $maxRetries) {
+                    sleep($this->retryDelay * $attempt); // Progressive delay
+                }
+            }
+        }
+        
+        // All retries failed - log error but don't throw exception to avoid breaking business logic
+        $this->log("All sync attempts failed for {$referenceType} ID {$referenceId}: " . $lastException->getMessage(), 'ERROR');
+        error_log("ACCOUNTING SYNC FAILED: {$referenceType} ID {$referenceId} - " . $lastException->getMessage());
+        
+        return null; // Return null to indicate sync failure without breaking the calling code
+    }
+    
+    /**
+     * Check if record is already synced
+     */
+    private function isAlreadySynced($referenceType, $referenceId) {
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT COUNT(*) FROM journal_entries 
+                WHERE reference_type = ? AND reference_id = ? AND status = 'POSTED'
+            ");
+            $stmt->execute([$referenceType, $referenceId]);
+            return $stmt->fetchColumn() > 0;
+        } catch (Exception $e) {
+            $this->log("Error checking sync status: " . $e->getMessage(), 'WARNING');
+            return false; // Assume not synced if we can't check
+        }
+    }
+    
+    /**
+     * Get existing journal entry ID
+     */
+    private function getExistingJournalEntryId($referenceType, $referenceId) {
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT id FROM journal_entries 
+                WHERE reference_type = ? AND reference_id = ? AND status = 'POSTED'
+                ORDER BY id DESC LIMIT 1
+            ");
+            $stmt->execute([$referenceType, $referenceId]);
+            return $stmt->fetchColumn();
+        } catch (Exception $e) {
+            $this->log("Error getting existing journal entry: " . $e->getMessage(), 'WARNING');
+            return null;
+        }
+    }
+    
+    /**
+     * Enhanced logging
+     */
+    private function log($message, $level = 'INFO') {
+        $timestamp = date('Y-m-d H:i:s');
+        $logMessage = "[{$timestamp}] [ACCOUNTING] [{$level}] {$message}";
+        error_log($logMessage);
+        
+        // Also log to database if possible (but don't fail if we can't)
+        try {
+            if ($level === 'ERROR' || $level === 'CRITICAL') {
+                // Could add database logging here if needed
+            }
+        } catch (Exception $e) {
+            // Ignore logging errors to prevent infinite loops
+        }
     }
     
     /**
@@ -215,168 +307,179 @@ class AccountingSystem {
     }
     
     /**
-     * Record consultation revenue
+     * Record consultation revenue with bulletproof sync
      */
-    public function recordConsultationRevenue($patient_id, $doctor_id, $amount, $payment_mode, $date = null) {
-        $date = $date ?? date('Y-m-d');
+    public function recordConsultationRevenue($patient_id, $doctor_id, $amount, $payment_mode, $date = null, $consultation_id = null) {
+        // Use consultation_id if provided, otherwise use patient_id as reference
+        $referenceId = $consultation_id ?? $patient_id;
         
-        // Determine cash/bank account based on payment mode
-        $cash_account_id = ($payment_mode === 'cash') ? 
-            $this->getAccountIdByCode('1000') : // Cash in Hand
-            $this->getAccountIdByCode('1010');  // Cash at Bank
+        return $this->safeExecute('CONSULTATION', $referenceId, function() use ($patient_id, $doctor_id, $amount, $payment_mode, $date, $referenceId) {
+            $date = $date ?? date('Y-m-d');
             
-        $revenue_account_id = $this->getAccountIdByCode('4000'); // Consultation Revenue
-        
-        $lines = [
-            [
-                'account_id' => $cash_account_id,
-                'description' => "Consultation fee - Patient ID: $patient_id",
-                'debit_amount' => $amount,
-                'credit_amount' => 0
-            ],
-            [
-                'account_id' => $revenue_account_id,
-                'description' => "Consultation fee - Patient ID: $patient_id",
-                'debit_amount' => 0,
-                'credit_amount' => $amount
-            ]
-        ];
-        
-        return $this->createJournalEntry(
-            $date,
-            'CONSULTATION',
-            $patient_id,
-            "Consultation fee collected from Patient ID: $patient_id",
-            $lines
-        );
+            // Determine cash/bank account based on payment mode
+            $cash_account_id = ($payment_mode === 'cash') ? 
+                $this->getAccountIdByCode('1000') : // Cash in Hand
+                $this->getAccountIdByCode('1010');  // Cash at Bank
+                
+            $revenue_account_id = $this->getAccountIdByCode('4000'); // Consultation Revenue
+            
+            $lines = [
+                [
+                    'account_id' => $cash_account_id,
+                    'description' => "Consultation fee - Patient ID: $patient_id, Doctor ID: $doctor_id",
+                    'debit_amount' => $amount,
+                    'credit_amount' => 0
+                ],
+                [
+                    'account_id' => $revenue_account_id,
+                    'description' => "Consultation fee - Patient ID: $patient_id, Doctor ID: $doctor_id",
+                    'debit_amount' => 0,
+                    'credit_amount' => $amount
+                ]
+            ];
+            
+            return $this->createJournalEntry(
+                $date,
+                'CONSULTATION',
+                $referenceId,
+                "Consultation fee collected from Patient ID: $patient_id (Doctor: $doctor_id)",
+                $lines
+            );
+        });
     }
     
     /**
-     * Record pharmacy sale
+     * Record pharmacy sale with bulletproof sync
      */
     public function recordPharmacySale($bill_id, $total_amount, $gst_amount, $cost_amount, $payment_mode, $date = null) {
-        $date = $date ?? date('Y-m-d');
-        
-        // Determine cash/bank account
-        $cash_account_id = ($payment_mode === 'cash') ? 
-            $this->getAccountIdByCode('1000') : 
-            $this->getAccountIdByCode('1010');
+        return $this->safeExecute('PHARMACY', $bill_id, function() use ($bill_id, $total_amount, $gst_amount, $cost_amount, $payment_mode, $date) {
+            $date = $date ?? date('Y-m-d');
             
-        $revenue_account_id = $this->getAccountIdByCode('4010'); // Pharmacy Sales
-        $cogs_account_id = $this->getAccountIdByCode('5000');    // Cost of Goods Sold
-        $inventory_account_id = $this->getAccountIdByCode('1100'); // Inventory
-        $gst_account_id = $this->getAccountIdByCode('2010');     // GST Payable
-        
-        $lines = [
-            [
-                'account_id' => $cash_account_id,
-                'description' => "Pharmacy sale - Bill ID: $bill_id",
-                'debit_amount' => $total_amount,
-                'credit_amount' => 0
-            ],
-            [
-                'account_id' => $revenue_account_id,
-                'description' => "Pharmacy sale - Bill ID: $bill_id",
-                'debit_amount' => 0,
-                'credit_amount' => $total_amount - $gst_amount
-            ],
-            [
-                'account_id' => $gst_account_id,
-                'description' => "GST on pharmacy sale - Bill ID: $bill_id",
-                'debit_amount' => 0,
-                'credit_amount' => $gst_amount
-            ],
-            [
-                'account_id' => $cogs_account_id,
-                'description' => "Cost of goods sold - Bill ID: $bill_id",
-                'debit_amount' => $cost_amount,
-                'credit_amount' => 0
-            ],
-            [
-                'account_id' => $inventory_account_id,
-                'description' => "Inventory reduction - Bill ID: $bill_id",
-                'debit_amount' => 0,
-                'credit_amount' => $cost_amount
-            ]
-        ];
-        
-        return $this->createJournalEntry(
-            $date,
-            'PHARMACY',
-            $bill_id,
-            "Pharmacy sale - Bill ID: $bill_id",
-            $lines
-        );
+            // Determine cash/bank account
+            $cash_account_id = ($payment_mode === 'cash') ? 
+                $this->getAccountIdByCode('1000') : 
+                $this->getAccountIdByCode('1010');
+                
+            $revenue_account_id = $this->getAccountIdByCode('4010'); // Pharmacy Sales
+            $cogs_account_id = $this->getAccountIdByCode('5000');    // Cost of Goods Sold
+            $inventory_account_id = $this->getAccountIdByCode('1100'); // Inventory
+            $gst_account_id = $this->getAccountIdByCode('2010');     // GST Payable
+            
+            $lines = [
+                [
+                    'account_id' => $cash_account_id,
+                    'description' => "Pharmacy sale - Bill ID: $bill_id",
+                    'debit_amount' => $total_amount,
+                    'credit_amount' => 0
+                ],
+                [
+                    'account_id' => $revenue_account_id,
+                    'description' => "Pharmacy sale - Bill ID: $bill_id",
+                    'debit_amount' => 0,
+                    'credit_amount' => $total_amount - $gst_amount
+                ],
+                [
+                    'account_id' => $gst_account_id,
+                    'description' => "GST on pharmacy sale - Bill ID: $bill_id",
+                    'debit_amount' => 0,
+                    'credit_amount' => $gst_amount
+                ],
+                [
+                    'account_id' => $cogs_account_id,
+                    'description' => "Cost of goods sold - Bill ID: $bill_id",
+                    'debit_amount' => $cost_amount,
+                    'credit_amount' => 0
+                ],
+                [
+                    'account_id' => $inventory_account_id,
+                    'description' => "Inventory reduction - Bill ID: $bill_id",
+                    'debit_amount' => 0,
+                    'credit_amount' => $cost_amount
+                ]
+            ];
+            
+            return $this->createJournalEntry(
+                $date,
+                'PHARMACY',
+                $bill_id,
+                "Pharmacy sale - Bill ID: $bill_id",
+                $lines
+            );
+        });
     }
 
     /**
-     * Record laboratory revenue
+     * Record laboratory revenue with bulletproof sync
      */
     public function recordLabRevenue($bill_id, $amount, $payment_mode, $date = null) {
-        $date = $date ?? date('Y-m-d');
-        
-        $cash_account_id = ($payment_mode === 'cash') ? 
-            $this->getAccountIdByCode('1000') : 
-            $this->getAccountIdByCode('1010');
-        $revenue_account_id = $this->getAccountIdByCode('4020'); // Laboratory Revenue
-        
-        $lines = [
-            [
-                'account_id' => $cash_account_id,
-                'description' => "Lab bill - Bill ID: $bill_id",
-                'debit_amount' => $amount,
-                'credit_amount' => 0
-            ],
-            [
-                'account_id' => $revenue_account_id,
-                'description' => "Lab bill - Bill ID: $bill_id",
-                'debit_amount' => 0,
-                'credit_amount' => $amount
-            ]
-        ];
-        
-        return $this->createJournalEntry(
-            $date,
-            'LAB',
-            $bill_id,
-            "Lab bill - Bill ID: $bill_id",
-            $lines
-        );
+        return $this->safeExecute('LAB', $bill_id, function() use ($bill_id, $amount, $payment_mode, $date) {
+            $date = $date ?? date('Y-m-d');
+            
+            $cash_account_id = ($payment_mode === 'cash') ? 
+                $this->getAccountIdByCode('1000') : 
+                $this->getAccountIdByCode('1010');
+            $revenue_account_id = $this->getAccountIdByCode('4020'); // Laboratory Revenue
+            
+            $lines = [
+                [
+                    'account_id' => $cash_account_id,
+                    'description' => "Lab bill - Bill ID: $bill_id",
+                    'debit_amount' => $amount,
+                    'credit_amount' => 0
+                ],
+                [
+                    'account_id' => $revenue_account_id,
+                    'description' => "Lab bill - Bill ID: $bill_id",
+                    'debit_amount' => 0,
+                    'credit_amount' => $amount
+                ]
+            ];
+            
+            return $this->createJournalEntry(
+                $date,
+                'LAB',
+                $bill_id,
+                "Lab bill - Bill ID: $bill_id",
+                $lines
+            );
+        });
     }
 
     /**
-     * Record ultrasound revenue
+     * Record ultrasound revenue with bulletproof sync
      */
     public function recordUltrasoundRevenue($bill_id, $amount, $payment_mode, $date = null) {
-        $date = $date ?? date('Y-m-d');
-        
-        $cash_account_id = ($payment_mode === 'cash') ? 
-            $this->getAccountIdByCode('1000') : 
-            $this->getAccountIdByCode('1010');
-        $revenue_account_id = $this->getAccountIdByCode('4030'); // Ultrasound Revenue
-        
-        $lines = [
-            [
-                'account_id' => $cash_account_id,
-                'description' => "Ultrasound bill - Bill ID: $bill_id",
-                'debit_amount' => $amount,
-                'credit_amount' => 0
-            ],
-            [
-                'account_id' => $revenue_account_id,
-                'description' => "Ultrasound bill - Bill ID: $bill_id",
-                'debit_amount' => 0,
-                'credit_amount' => $amount
-            ]
-        ];
-        
-        return $this->createJournalEntry(
-            $date,
-            'ULTRASOUND',
-            $bill_id,
-            "Ultrasound bill - Bill ID: $bill_id",
-            $lines
-        );
+        return $this->safeExecute('ULTRASOUND', $bill_id, function() use ($bill_id, $amount, $payment_mode, $date) {
+            $date = $date ?? date('Y-m-d');
+            
+            $cash_account_id = ($payment_mode === 'cash') ? 
+                $this->getAccountIdByCode('1000') : 
+                $this->getAccountIdByCode('1010');
+            $revenue_account_id = $this->getAccountIdByCode('4030'); // Ultrasound Revenue
+            
+            $lines = [
+                [
+                    'account_id' => $cash_account_id,
+                    'description' => "Ultrasound bill - Bill ID: $bill_id",
+                    'debit_amount' => $amount,
+                    'credit_amount' => 0
+                ],
+                [
+                    'account_id' => $revenue_account_id,
+                    'description' => "Ultrasound bill - Bill ID: $bill_id",
+                    'debit_amount' => 0,
+                    'credit_amount' => $amount
+                ]
+            ];
+            
+            return $this->createJournalEntry(
+                $date,
+                'ULTRASOUND',
+                $bill_id,
+                "Ultrasound bill - Bill ID: $bill_id",
+                $lines
+            );
+        });
     }
     
     /**
