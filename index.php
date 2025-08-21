@@ -832,8 +832,9 @@ unset($v);
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach (
-                        isset($calendar_visits) ? $calendar_visits : [] as $v): ?>
+                    <?php 
+                    $visits_to_show = isset($calendar_visits) ? $calendar_visits : [];
+                    foreach ($visits_to_show as $v): ?>
                     <tr class="clickable-row" data-visit-id="<?= $v['visit_id'] ?>" data-patient-id="<?= $v['patient_id'] ?>" data-patient-name="<?= htmlspecialchars($v['full_name']) ?>" data-patient-dob="<?= htmlspecialchars($v['dob']) ?>" data-patient-gender="<?= htmlspecialchars($v['gender']) ?>" data-patient-contact="<?= htmlspecialchars($v['contact_number']) ?>" data-patient-address="<?= htmlspecialchars($v['address']) ?>" data-patient-lead="<?= htmlspecialchars($v['lead_source']) ?>" data-doctor-name="<?= htmlspecialchars($v['doctor_name']) ?>" data-doctor-specialty="<?= htmlspecialchars($v['specialty']) ?>" data-reason="<?= htmlspecialchars($v['reason']) ?>" data-visit-date="<?= htmlspecialchars($v['visit_date']) ?>" data-lab-invoice="<?= $v['invoices']['lab'] ?? '' ?>" data-pharmacy-invoice="<?= $v['invoices']['pharmacy'] ?? '' ?>" style="cursor: pointer;">
                         <td><?= date('H:i', strtotime($v['visit_date'])) ?></td>
                         <td><?= htmlspecialchars($v['full_name']) ?></td>
