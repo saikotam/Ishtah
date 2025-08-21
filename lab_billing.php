@@ -811,36 +811,43 @@ if (isset($_GET['invoice_number'])) {
                         </tr>
                     </thead>
                     <tbody>
+                        <?php
+                        // Initialize live variables outside the conditional block
+                        $live_subtotal = 0;
+                        $live_total_item_discount = 0;
+                        $live_discount_amount = 0;
+                        $live_discounted_total = 0;
+                        
+                        if (!empty($bill_list)) {
+                            foreach ($bill_list as $item) {
+                                $price = $item['unit_price'] * $item['quantity'];
+                                $item_discount_type = isset($item_discounts[$item['test_id']]['type']) ? $item_discounts[$item['test_id']]['type'] : 'rupees';
+                                $item_discount_value = isset($item_discounts[$item['test_id']]['value']) ? $item_discounts[$item['test_id']]['value'] : 0;
+                                $item_discount = 0;
+                                if ($item_discount_type === 'percent') {
+                                    $item_discount = $price * $item_discount_value / 100;
+                                } else {
+                                    $item_discount = $item_discount_value;
+                                }
+                                $discounted_price = max(0, $price - $item_discount);
+                                $live_subtotal += $price;
+                                $live_total_item_discount += $item_discount;
+                            }
+                            
+                            if ($discount_type === 'percent' && $discount_value > 0) {
+                                $live_discount_amount = ($live_subtotal - $live_total_item_discount) * $discount_value / 100;
+                            } elseif ($discount_type === 'rupees' && $discount_value > 0) {
+                                $live_discount_amount = $discount_value;
+                            }
+                            $live_discounted_total = max(0, $live_subtotal - $live_total_item_discount - $live_discount_amount);
+                        }
+                        ?>
+                        
                         <?php if (empty($bill_list)): ?>
                         <tr>
                             <td colspan="5" class="text-center text-muted">No tests added yet. Use the search above to add tests to the bill.</td>
                         </tr>
                         <?php else: ?>
-                        <?php
-                        $live_subtotal = 0;
-                        $live_total_item_discount = 0;
-                        foreach ($bill_list as $item) {
-                            $price = $item['unit_price'] * $item['quantity'];
-                            $item_discount_type = isset($item_discounts[$item['test_id']]['type']) ? $item_discounts[$item['test_id']]['type'] : 'rupees';
-                            $item_discount_value = isset($item_discounts[$item['test_id']]['value']) ? $item_discounts[$item['test_id']]['value'] : 0;
-                            $item_discount = 0;
-                            if ($item_discount_type === 'percent') {
-                                $item_discount = $price * $item_discount_value / 100;
-                            } else {
-                                $item_discount = $item_discount_value;
-                            }
-                            $discounted_price = max(0, $price - $item_discount);
-                            $live_subtotal += $price;
-                            $live_total_item_discount += $item_discount;
-                        }
-                        $live_discount_amount = 0;
-                        if ($discount_type === 'percent' && $discount_value > 0) {
-                            $live_discount_amount = ($live_subtotal - $live_total_item_discount) * $discount_value / 100;
-                        } elseif ($discount_type === 'rupees' && $discount_value > 0) {
-                            $live_discount_amount = $discount_value;
-                        }
-                        $live_discounted_total = max(0, $live_subtotal - $live_total_item_discount - $live_discount_amount);
-                        ?>
                         <?php foreach ($bill_list as $item): ?>
                         <tr>
                             <td><?= htmlspecialchars($item['test_name']) ?></td>
