@@ -83,10 +83,14 @@ function register_visit($pdo, $data) {
             throw new Exception("Missing required field: $field");
         }
     }
-    $stmt = $pdo->prepare("INSERT INTO visits (patient_id, doctor_id, reason, referred_by) VALUES (?, ?, ?, ?)");
+    // Set visit_date to current date if not provided
+    $visit_date = isset($data['visit_date']) ? $data['visit_date'] : date('Y-m-d');
+    
+    $stmt = $pdo->prepare("INSERT INTO visits (patient_id, doctor_id, visit_date, reason, referred_by) VALUES (?, ?, ?, ?, ?)");
     $stmt->execute([
         $data['patient_id'],
         $data['doctor_id'],
+        $visit_date,
         $data['reason'],
         isset($data['referred_by']) ? $data['referred_by'] : null
     ]);
