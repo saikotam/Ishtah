@@ -38,12 +38,15 @@ try {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         patient_id INTEGER NOT NULL,
         doctor_id INTEGER,
-        visit_date DATE NOT NULL,
+        visit_date DATE NOT NULL DEFAULT (DATE('now')),
         reason TEXT,
         status TEXT DEFAULT 'pending',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (patient_id) REFERENCES patients(id)
     )");
+    
+    // Fix any existing visits that might have NULL visit_date
+    $pdo->exec("UPDATE visits SET visit_date = DATE(created_at) WHERE visit_date IS NULL OR visit_date = ''");
     
     // Create doctors table if it doesn't exist
     $pdo->exec("CREATE TABLE IF NOT EXISTS doctors (

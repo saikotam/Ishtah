@@ -128,7 +128,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Fetch today's visits for summary table
-$today_visits = $pdo->query("SELECT v.id AS visit_id, v.visit_date, v.reason, p.id AS patient_id, p.full_name, p.dob, p.gender, p.contact_number, p.address, p.lead_source, d.name AS doctor_name, d.specialty FROM visits v JOIN patients p ON v.patient_id = p.id JOIN doctors d ON v.doctor_id = d.id WHERE DATE(v.visit_date) = CURDATE() ORDER BY v.visit_date DESC")->fetchAll();
+$today_visits = $pdo->query("SELECT v.id AS visit_id, v.visit_date, v.reason, p.id AS patient_id, p.full_name, p.dob, p.gender, p.contact_number, p.address, p.lead_source, d.name AS doctor_name, d.specialty FROM visits v JOIN patients p ON v.patient_id = p.id JOIN doctors d ON v.doctor_id = d.id WHERE DATE(v.visit_date) = DATE('now') ORDER BY v.visit_date DESC")->fetchAll();
 
 // Fetch all patients who have ever visited, with last visit date and total visits
 $all_visited_patients = $pdo->query("SELECT p.id, p.full_name, MAX(v.visit_date) AS last_visit, COUNT(v.id) AS visit_count FROM patients p JOIN visits v ON p.id = v.patient_id GROUP BY p.id, p.full_name ORDER BY last_visit DESC")->fetchAll();
