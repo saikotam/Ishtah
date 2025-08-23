@@ -2,11 +2,11 @@
 // includes/db.php - Database connection
 // Supports SQLite (default) and MySQL. Edit placeholders below for MySQL.
 
-$DB_DRIVER = getenv('DB_DRIVER') ?: 'sqlite'; // 'sqlite' or 'mysql'
+$DB_DRIVER = getenv('DB_DRIVER') ?: 'mysql'; // 'sqlite' or 'mysql'
 $DB_HOST = getenv('DB_HOST') ?: 'localhost';
-$DB_NAME = getenv('DB_NAME') ?: 'your_database_name';
-$DB_USER = getenv('DB_USER') ?: 'your_username';
-$DB_PASS = getenv('DB_PASS') ?: 'your_password';
+$DB_NAME = getenv('DB_NAME') ?: 'iwqgalpa_register';
+$DB_USER = getenv('DB_USER') ?: 'iwqgalpa_admin';
+$DB_PASS = getenv('DB_PASS') ?: 'dT[o4Ce*[a]_W3vy';
 $DB_CHARSET = getenv('DB_CHARSET') ?: 'utf8mb4';
 
 if ($DB_DRIVER === 'mysql') {
