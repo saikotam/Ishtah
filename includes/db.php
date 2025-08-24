@@ -6,7 +6,7 @@ $DB_DRIVER = getenv('DB_DRIVER') ?: 'sqlite'; // 'sqlite' or 'mysql'
 $DB_HOST = getenv('DB_HOST') ?: 'localhost';
 $DB_NAME = getenv('DB_NAME') ?: 'iwqgalpa_register';
 $DB_USER = getenv('DB_USER') ?: 'iwqgalpa_admin';
-$DB_PASS = getenv('DB_PASS') ?: 'dT[o4Ce*[a]_W3vy';
+$DB_PASS = getenv('DB_PASS') ?: 'm7ynkLM)wCmTBiwb';
 $DB_CHARSET = getenv('DB_CHARSET') ?: 'utf8mb4';
 
 if ($DB_DRIVER === 'mysql') {
@@ -98,4 +98,5 @@ try {
 } catch (PDOException $e) {
     error_log("Database connection error: " . $e->getMessage());
     throw new PDOException("Database connection failed: " . $e->getMessage(), (int)$e->getCode());
+
 } 
